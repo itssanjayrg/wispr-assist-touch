@@ -1,4 +1,5 @@
 import AppKit
+import ServiceManagement
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let panelController = PanelController()
@@ -17,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Settings.registerDefaults()
+        LaunchAtLogin.configureOnLaunch()
         buildStatusItem()
 
         if !AccessibilityPermission.isTrusted { AccessibilityPermission.prompt() }
@@ -28,8 +30,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { self?.reconcile() }
         }
         // …and keep a cheap poll as a safety net (also catches revocation).
-        let timer = Timer(timeInterval: 2, repeats: true) { [weak self] _ in self?.reconcile() }
-        timer.tolerance = 0.5
+        let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in self?.reconcile() }
+        timer.tolerance = 0.2
         RunLoop.main.add(timer, forMode: .common)
         trustTimer = timer
 
@@ -38,7 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         tracker.stop()
-        panelController.update(nil, immediately: true)
+        panelController.hideNow()
     }
 
     /// Single place that makes reality match (permission × user setting).
@@ -48,7 +50,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             tracker.start()
         } else {
             tracker.stop()
-            panelController.update(nil, immediately: true)
+            panelController.hideNow()
+            DebugLog.note("tracking off (trusted=\(trusted), enabled=\(Settings.isEnabled)): panel hidden")
         }
         updateStatusIcon(trusted: trusted)
     }
@@ -57,14 +60,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func buildStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        item.button?.toolTip = "Assist Touch"
+        item.button?.toolTip = "Wispr Assist"
         statusItem = item
 
         let menu = NSMenu()
         menu.delegate = self
         menu.autoenablesItems = false
 
-        let header = NSMenuItem(title: "Assist Touch", action: nil, keyEquivalent: "")
+        let header = NSMenuItem(title: "Wispr Assist", action: nil, keyEquivalent: "")
         header.isEnabled = false
         menu.addItem(header)
         menu.addItem(.separator())
@@ -87,7 +90,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         loginItem = login
 
         menu.addItem(.separator())
-        let quit = NSMenuItem(title: "Quit Assist Touch", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let quit = NSMenuItem(
+            title: "Quit Wispr Assist", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quit)
 
         item.menu = menu
@@ -95,8 +99,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func updateStatusIcon(trusted: Bool) {
-        let name = trusted ? "keyboard" : "exclamationmark.triangle"
-        let image = NSImage(systemSymbolName: name, accessibilityDescription: "Assist Touch")
+        let name = trusted ? "waveform" : "exclamationmark.triangle"
+        let image = NSImage(systemSymbolName: name, accessibilityDescription: "Wispr Assist")
         image?.isTemplate = true
         statusItem?.button?.image = image
         statusItem?.button?.appearsDisabled = trusted && !Settings.isEnabled
@@ -108,6 +112,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         enabledItem?.isEnabled = trusted
         accessItem?.title = trusted ? "Accessibility Access Granted" : "Grant Accessibility Access…"
         accessItem?.state = trusted ? .on : .off
+        loginItem?.title = LaunchAtLogin.needsApproval ? "Open at Login (allow in System Settings…)" : "Open at Login"
         loginItem?.state = LaunchAtLogin.isEnabled ? .on : .off
     }
 
@@ -119,15 +124,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func openAccessibility() {
-        if AccessibilityPermission.isTrusted {
-            AccessibilityPermission.openSystemSettings()
-        } else {
-            AccessibilityPermission.prompt()
-            AccessibilityPermission.openSystemSettings()
-        }
+        // The launch-time prompt already registered the app in the Accessibility list, so
+        // opening Settings alone is enough (prompting as well would show two dialogs).
+        AccessibilityPermission.openSystemSettings()
     }
 
     @objc private func toggleLogin() {
-        LaunchAtLogin.set(!LaunchAtLogin.isEnabled)
+        if LaunchAtLogin.needsApproval {
+            SMAppService.openSystemSettingsLoginItems()
+        } else {
+            LaunchAtLogin.set(!LaunchAtLogin.isEnabled)
+        }
     }
 }
