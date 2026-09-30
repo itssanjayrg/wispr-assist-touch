@@ -116,7 +116,9 @@ final class EditableFocusInspector {
             return nil
         }
         let lift = EditabilityRules.isTerminal(bundleID: bundleID) ? PanelPlacement.terminalLift : 0
-        DebugLog.note("SHOWN \(describe) caret=\(source) frame=\(frame != nil) lift=\(lift)")
+        DebugLog.note(
+            "SHOWN \(describe) caret=\(source) anchor=\(Self.fmt(anchor)) frame=\(frame.map(Self.fmt) ?? "nil") lift=\(lift)"
+        )
         return FocusSnapshot(
             caretRect: anchor, elementFrame: frame, isAtLineEnd: atLineEnd, lift: lift,
             appKey: Int(pid), fieldKey: Int(bitPattern: CFHash(element)))
@@ -177,6 +179,10 @@ final class EditableFocusInspector {
             return true
         }
         return abs(next.midY - caret.midY) > caret.height * 0.6
+    }
+
+    private static func fmt(_ r: CGRect) -> String {
+        "(\(Int(r.minX)),\(Int(r.minY)) \(Int(r.width))x\(Int(r.height)))"
     }
 
     private func isUsable(_ r: CGRect) -> Bool {
