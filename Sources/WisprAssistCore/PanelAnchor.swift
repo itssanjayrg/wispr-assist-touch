@@ -8,13 +8,26 @@ public struct PanelAnchor: Equatable {
     public var appKey: Int
     public var fieldKey: Int
     public var elementFrame: CGRect?
+    /// The window frame to show the panel at. Starts as the automatic placement and changes only
+    /// if the user moves the panel by its handle.
     public var frame: CGRect
+    /// The window origin the panel was automatically placed at; limits how far the user may move it.
+    public let homeOrigin: CGPoint
 
     public init(appKey: Int, fieldKey: Int, elementFrame: CGRect?, frame: CGRect) {
         self.appKey = appKey
         self.fieldKey = fieldKey
         self.elementFrame = elementFrame
         self.frame = frame
+        self.homeOrigin = frame.origin
+    }
+
+    /// The same session after the user moved the panel. The new position lasts for this session only:
+    /// a new field or app (or returning after a pause) builds a fresh anchor at the default position.
+    public func moved(to frame: CGRect) -> PanelAnchor {
+        var copy = self
+        copy.frame = frame
+        return copy
     }
 
     /// Still "the same field"? The element identity is the fast path; some apps hand out a new

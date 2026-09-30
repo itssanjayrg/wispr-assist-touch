@@ -9,6 +9,9 @@ dictate** and tap another to **delete the line** without reaching for the keyboa
 - **⌫** — sends **⌘⌫**, deleting from the caret to the start of the line.
 - **Stays where it landed.** The control appears beside the caret and then holds still while you type or
   dictate, so your mouse doesn't have to chase it. It resets when you switch app or field.
+- **Move it out of the way.** Hover the control and drag the ✥ handle on its top-left corner to nudge
+  it (up to 300 pt) and see what's underneath. It stays there for that field only and resets on the next
+  field or app.
 - **Only where it's useful.** It appears for editable text fields only and never for password fields.
 - Follows the light / dark theme, works in terminals, and runs as a menu-bar app.
 

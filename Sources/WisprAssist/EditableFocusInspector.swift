@@ -109,7 +109,7 @@ final class EditableFocusInspector {
         } else if let f = frame {
             // No caret anywhere: anchor at the field's leading edge (where text starts) instead
             // of its centre, spanning the field's height so the panel clears the whole field.
-            anchor = CGRect(x: f.minX + 10 + Metrics.panelSize.width / 2, y: f.minY, width: 0, height: f.height)
+            anchor = CGRect(x: f.minX + 10 + Metrics.pillSize.width / 2, y: f.minY, width: 0, height: f.height)
             source = "frame-leading"
         } else {
             DebugLog.note("NO GEOMETRY \(describe)")

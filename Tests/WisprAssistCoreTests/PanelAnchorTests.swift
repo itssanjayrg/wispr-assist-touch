@@ -23,4 +23,12 @@ final class PanelAnchorTests: XCTestCase {
         XCTAssertFalse(anchor.isValid(appKey: 42, fieldKey: 8, elementFrame: other))
         XCTAssertFalse(anchor.isValid(appKey: 42, fieldKey: 8, elementFrame: nil))
     }
+
+    func testMovingKeepsHomeAndSession() {
+        let moved = anchor.moved(to: CGRect(x: 40, y: 30, width: 88, height: 44))
+        XCTAssertEqual(moved.frame.origin, CGPoint(x: 40, y: 30))
+        XCTAssertEqual(moved.homeOrigin, anchor.homeOrigin)
+        XCTAssertTrue(moved.isValid(appKey: 42, fieldKey: 7, elementFrame: nil))
+        XCTAssertFalse(moved.isValid(appKey: 43, fieldKey: 7, elementFrame: field))
+    }
 }
