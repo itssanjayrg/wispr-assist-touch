@@ -3,6 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+    <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundleExecutable</key><string>WisprAssist</string>
     <key>CFBundleIdentifier</key><string>app.wisprassist.WisprAssist</string>
     <key>CFBundleName</key><string>Wispr Assist</string>

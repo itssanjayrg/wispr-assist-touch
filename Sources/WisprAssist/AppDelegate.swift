@@ -96,7 +96,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func updateStatusIcon(trusted: Bool) {
-        let name = trusted ? "keyboard" : "exclamationmark.triangle"
+        let name = trusted ? "waveform" : "exclamationmark.triangle"
         let image = NSImage(systemSymbolName: name, accessibilityDescription: "Wispr Assist")
         image?.isTemplate = true
         statusItem?.button?.image = image
