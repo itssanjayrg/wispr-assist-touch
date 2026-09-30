@@ -9,7 +9,7 @@ import ApplicationServices
 final class FocusTracker {
     private let onChange: (FocusSnapshot?) -> Void
     private let inspector = EditableFocusInspector()
-    private let queue = DispatchQueue(label: "app.assisttouch.ax", qos: .userInteractive)
+    private let queue = DispatchQueue(label: "app.wisprassist.ax", qos: .userInteractive)
     private let ownPID = ProcessInfo.processInfo.processIdentifier
 
     private var running = false
@@ -23,6 +23,8 @@ final class FocusTracker {
     private var needsRerun = false
     private var generation = 0
     private var last: FocusSnapshot?
+    private var pollTick = 0
+    private var manualAXPIDs = Set<pid_t>()
 
     private static let notifications: [String] = [
         kAXFocusedUIElementChangedNotification,
@@ -65,12 +67,19 @@ final class FocusTracker {
 
         attach(to: NSWorkspace.shared.frontmostApplication)
 
-        let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in self?.scheduleRefresh() }
+        let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in self?.handlePoll() }
         timer.tolerance = 0.1
         RunLoop.main.add(timer, forMode: .common)
         pollTimer = timer
 
         scheduleRefresh()
+    }
+
+    /// Notifications drive updates; the poll is only a safety net. While nothing is shown it
+    /// runs at a quarter of the rate so an idle Mac isn't hammered with Accessibility IPC.
+    private func handlePoll() {
+        pollTick &+= 1
+        if last != nil || pollTick % 4 == 0 { scheduleRefresh() }
     }
 
     func stop() {
@@ -97,9 +106,13 @@ final class FocusTracker {
         let element = AXUIElementCreateApplication(pid)
         AXUIElementSetMessagingTimeout(element, 0.25)
 
-        // Chromium / Electron only build their accessibility tree on request.
-        queue.async {
-            AXUIElementSetAttributeValue(element, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+        // Chromium / Electron only build their accessibility tree on request. Doing this for
+        // other apps is pointless, so limit it (and do it once per process).
+        if Self.isChromiumBased(app), manualAXPIDs.insert(pid).inserted {
+            queue.async {
+                AXUIElementSetAttributeValue(element, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+                AXUIElementSetAttributeValue(element, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue)
+            }
         }
 
         var created: AXObserver?
@@ -116,6 +129,22 @@ final class FocusTracker {
         CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(created), .commonModes)
         observer = created
         observedPID = pid
+    }
+
+    private static func isChromiumBased(_ app: NSRunningApplication) -> Bool {
+        if let url = app.bundleURL {
+            let frameworks = url.appendingPathComponent("Contents/Frameworks")
+            // Electron forks rename the framework (e.g. "Codex Framework"), but every Chromium
+            // host ships "<Name> Helper (Renderer).app".
+            let entries = (try? FileManager.default.contentsOfDirectory(atPath: frameworks.path)) ?? []
+            if entries.contains(where: { $0.hasSuffix("Helper (Renderer).app") || $0 == "Electron Framework.framework"
+                                          || $0 == "Chromium Embedded Framework.framework" }) {
+                return true
+            }
+        }
+        let id = (app.bundleIdentifier ?? "").lowercased()
+        return ["com.google.chrome", "org.chromium", "com.brave", "com.microsoft.edgemac",
+                "com.vivaldi", "company.thebrowser", "com.operasoftware"].contains { id.hasPrefix($0) }
     }
 
     private func detach() {

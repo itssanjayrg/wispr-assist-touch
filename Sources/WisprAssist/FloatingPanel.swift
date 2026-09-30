@@ -4,13 +4,13 @@ import SwiftUI
 /// Borderless, non-activating panel: it floats above the active app but can never become
 /// key or main, so the text field the user is typing in keeps keyboard focus at all times.
 final class FloatingPanel: NSPanel {
-    init(onGlobe: @escaping () -> Void, onReturn: @escaping () -> Void) {
+    init(onGlobeDown: @escaping () -> Void, onGlobeUp: @escaping () -> Void, onReturn: @escaping () -> Void) {
         let size = Metrics.panelSize
         super.init(contentRect: NSRect(origin: .zero, size: size),
                    styleMask: [.borderless, .nonactivatingPanel],
                    backing: .buffered, defer: true)
 
-        title = "Assist Touch"
+        title = "Wispr Assist"
         isFloatingPanel = true
         level = .statusBar
         hidesOnDeactivate = false
@@ -30,7 +30,7 @@ final class FloatingPanel: NSPanel {
         effect.maskImage = Self.roundedMask(radius: Metrics.outerRadius)
         effect.autoresizingMask = [.width, .height]
 
-        let hosting = FirstMouseHostingView(rootView: ControlView(onGlobe: onGlobe, onReturn: onReturn))
+        let hosting = FirstMouseHostingView(rootView: ControlView(onGlobeDown: onGlobeDown, onGlobeUp: onGlobeUp, onReturn: onReturn))
         hosting.frame = effect.bounds
         hosting.autoresizingMask = [.width, .height]
         effect.addSubview(hosting)
@@ -38,7 +38,7 @@ final class FloatingPanel: NSPanel {
         // Hairline edge, like system HUDs.
         effect.wantsLayer = true
         contentView = effect
-        setAccessibilityLabel("Assist Touch controls")
+        setAccessibilityLabel("Wispr Assist controls")
     }
 
     override var canBecomeKey: Bool { false }

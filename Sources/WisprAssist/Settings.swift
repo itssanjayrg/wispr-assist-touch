@@ -22,7 +22,7 @@ enum LaunchAtLogin {
             if enabled { try SMAppService.mainApp.register() }
             else { try SMAppService.mainApp.unregister() }
         } catch {
-            NSLog("AssistTouch: launch-at-login change failed: \(error.localizedDescription)")
+            NSLog("WisprAssist: launch-at-login change failed: \(error.localizedDescription)")
         }
     }
 }

@@ -38,6 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         tracker.stop()
+        KeyEventPoster.globeUp()
         panelController.update(nil, immediately: true)
     }
 
@@ -57,14 +58,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func buildStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        item.button?.toolTip = "Assist Touch"
+        item.button?.toolTip = "Wispr Assist"
         statusItem = item
 
         let menu = NSMenu()
         menu.delegate = self
         menu.autoenablesItems = false
 
-        let header = NSMenuItem(title: "Assist Touch", action: nil, keyEquivalent: "")
+        let header = NSMenuItem(title: "Wispr Assist", action: nil, keyEquivalent: "")
         header.isEnabled = false
         menu.addItem(header)
         menu.addItem(.separator())
@@ -87,7 +88,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         loginItem = login
 
         menu.addItem(.separator())
-        let quit = NSMenuItem(title: "Quit Assist Touch", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let quit = NSMenuItem(title: "Quit Wispr Assist", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quit)
 
         item.menu = menu
@@ -96,7 +97,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func updateStatusIcon(trusted: Bool) {
         let name = trusted ? "keyboard" : "exclamationmark.triangle"
-        let image = NSImage(systemSymbolName: name, accessibilityDescription: "Assist Touch")
+        let image = NSImage(systemSymbolName: name, accessibilityDescription: "Wispr Assist")
         image?.isTemplate = true
         statusItem?.button?.image = image
         statusItem?.button?.appearsDisabled = trusted && !Settings.isEnabled
@@ -119,12 +120,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func openAccessibility() {
-        if AccessibilityPermission.isTrusted {
-            AccessibilityPermission.openSystemSettings()
-        } else {
-            AccessibilityPermission.prompt()
-            AccessibilityPermission.openSystemSettings()
-        }
+        // The launch-time prompt already registered the app in the Accessibility list, so
+        // opening Settings alone is enough (prompting as well would show two dialogs).
+        AccessibilityPermission.openSystemSettings()
     }
 
     @objc private func toggleLogin() {

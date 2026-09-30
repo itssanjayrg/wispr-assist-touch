@@ -2,15 +2,15 @@
 import PackageDescription
 
 let package = Package(
-    name: "AssistTouch",
+    name: "WisprAssist",
     platforms: [.macOS(.v13)],
     products: [
-        .executable(name: "AssistTouch", targets: ["AssistTouch"])
+        .executable(name: "WisprAssist", targets: ["WisprAssist"])
     ],
     targets: [
         // Pure, UI-free logic (geometry + editability rules). Fully unit-testable.
-        .target(name: "AssistTouchCore"),
-        .executableTarget(name: "AssistTouch", dependencies: ["AssistTouchCore"]),
-        .testTarget(name: "AssistTouchCoreTests", dependencies: ["AssistTouchCore"])
+        .target(name: "WisprAssistCore"),
+        .executableTarget(name: "WisprAssist", dependencies: ["WisprAssistCore"]),
+        .testTarget(name: "WisprAssistCoreTests", dependencies: ["WisprAssistCore"])
     ]
 )

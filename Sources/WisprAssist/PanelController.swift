@@ -1,11 +1,12 @@
 import AppKit
-import AssistTouchCore
+import WisprAssistCore
 
 /// Owns the panel: converts snapshots to screen positions, animates show / move / hide, and
 /// debounces hiding so brief focus hand-offs (tabbing between fields) never flicker.
 final class PanelController {
     private lazy var panel = FloatingPanel(
-        onGlobe: { KeyEventPoster.pressGlobe() },
+        onGlobeDown: { KeyEventPoster.globeDown() },
+        onGlobeUp: { KeyEventPoster.globeUp() },
         onReturn: { KeyEventPoster.pressReturn() }
     )
 
@@ -42,7 +43,7 @@ final class PanelController {
         let size = Metrics.panelSize
         let origin = PanelPlacement.origin(
             panelSize: size,
-            input: PlacementInput(caret: caret, element: element, isAtLineEnd: snapshot.isAtLineEnd),
+            input: PlacementInput(caret: caret, element: element, isAtLineEnd: snapshot.isAtLineEnd, lift: snapshot.lift),
             bounds: screen.visibleFrame.insetBy(dx: 8, dy: 8)
         )
         let scale = screen.backingScaleFactor
@@ -103,6 +104,7 @@ final class PanelController {
         guard isShown else { return }
         isShown = false
         hideWork = nil
+        KeyEventPoster.globeUp()   // never leave Fn stuck down if the panel goes away mid-hold
         visibilityToken &+= 1
         let token = visibilityToken
         NSAnimationContext.runAnimationGroup({ context in

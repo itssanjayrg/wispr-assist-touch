@@ -16,13 +16,14 @@ enum Metrics {
 }
 
 struct ControlView: View {
-    let onGlobe: () -> Void
+    let onGlobeDown: () -> Void
+    let onGlobeUp: () -> Void
     let onReturn: () -> Void
 
     var body: some View {
         HStack(spacing: Metrics.spacing) {
-            KeyButton(symbol: "globe", label: "Globe key",
-                      tooltip: "Globe (fn)", action: onGlobe)
+            HoldKeyButton(symbol: "globe", label: "Globe key",
+                          tooltip: "Hold to press Globe (fn)", onDown: onGlobeDown, onUp: onGlobeUp)
             KeyButton(symbol: "return", label: "Return key",
                       tooltip: "Return", action: onReturn)
         }
@@ -51,6 +52,54 @@ private struct KeyButton: View {
         .help(tooltip)
         .accessibilityLabel(label)
         .accessibilityAddTraits(.isButton)
+    }
+}
+
+/// Acts like a physical key: `onDown` fires the moment the mouse goes down and `onUp` when it is
+/// released (even if the pointer has moved off the button), so holding the button holds the key.
+private struct HoldKeyButton: View {
+    let symbol: String
+    let label: String
+    let tooltip: String
+    let onDown: () -> Void
+    let onUp: () -> Void
+
+    @State private var isHovering = false
+    @State private var isPressed = false
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: Metrics.innerRadius, style: .continuous)
+        Image(systemName: symbol)
+            .font(.system(size: 14, weight: .medium))
+            .symbolRenderingMode(.monochrome)
+            .frame(width: Metrics.buttonSize.width, height: Metrics.buttonSize.height)
+            .foregroundStyle(.primary)
+            .background(shape.fill(Color.primary.opacity(isPressed ? 0.18 : (isHovering ? 0.09 : 0))))
+            .contentShape(shape)
+            .animation(.easeOut(duration: 0.08), value: isPressed)
+            .animation(.easeOut(duration: 0.12), value: isHovering)
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in
+                        guard !isPressed else { return }
+                        isPressed = true
+                        onDown()
+                    }
+                    .onEnded { _ in
+                        isPressed = false
+                        onUp()
+                    }
+            )
+            .background(HoverTracker(isHovering: $isHovering))
+            .onDisappear { if isPressed { isPressed = false; onUp() } }
+            .help(tooltip)
+            .accessibilityLabel(label)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction {
+                // VoiceOver / Switch Control "press": a short hold.
+                onDown()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { onUp() }
+            }
     }
 }
 

@@ -9,11 +9,15 @@ public struct PlacementInput: Equatable {
     public var element: CGRect?
     /// `true` when nothing follows the caret on its line (free space to the right).
     public var isAtLineEnd: Bool
+    /// Extra distance (points) to push the panel up, for hosts whose caret is drawn over the text
+    /// (terminals) so the panel stays clear of it.
+    public var lift: CGFloat
 
-    public init(caret: CGRect, element: CGRect? = nil, isAtLineEnd: Bool = true) {
+    public init(caret: CGRect, element: CGRect? = nil, isAtLineEnd: Bool = true, lift: CGFloat = 0) {
         self.caret = caret
         self.element = element
         self.isAtLineEnd = isAtLineEnd
+        self.lift = lift
     }
 }
 
@@ -25,7 +29,10 @@ public struct PlacementInput: Equatable {
 ///   which is empty space; otherwise above, then below.
 /// * The result is always clamped to `bounds` (the screen's visible frame).
 public enum PanelPlacement {
-    public static let gap: CGFloat = 6
+    public static let gap: CGFloat = 14
+    /// Extra upward offset used for terminal emulators. Together with `gap` the terminal offset
+    /// above the cursor is 40 pt (the placement verified as correct in terminals).
+    public static let terminalLift: CGFloat = 26
     /// An element taller than this many caret-heights is treated as multi-line.
     static let multilineFactor: CGFloat = 2.2
 
@@ -45,14 +52,19 @@ public enum PanelPlacement {
             ? [.trailing, .above, .below, .leading]
             : [.above, .below, .trailing, .leading]
 
+        // Single-line fields: clear the whole field, not just the (shorter) caret rect, so the
+        // panel never overlaps the field's own border or padding.
+        let top = (!isMultiline ? input.element.map { max(caret.maxY, $0.maxY) } : nil) ?? caret.maxY
+        let bottom = (!isMultiline ? input.element.map { min(caret.minY, $0.minY) } : nil) ?? caret.minY
+
         func frame(for side: Side) -> CGRect {
             switch side {
             case .above:
-                return CGRect(x: caret.midX - w / 2, y: caret.maxY + gap, width: w, height: h)
+                return CGRect(x: caret.midX - w / 2, y: top + gap + input.lift, width: w, height: h)
             case .below:
-                return CGRect(x: caret.midX - w / 2, y: caret.minY - gap - h, width: w, height: h)
+                return CGRect(x: caret.midX - w / 2, y: bottom - gap - h, width: w, height: h)
             case .trailing:
-                return CGRect(x: caret.maxX + gap, y: caret.midY - h / 2, width: w, height: h)
+                return CGRect(x: caret.maxX + gap, y: caret.midY - h / 2 + input.lift, width: w, height: h)
             case .leading:
                 return CGRect(x: caret.minX - gap - w, y: caret.midY - h / 2, width: w, height: h)
             }
