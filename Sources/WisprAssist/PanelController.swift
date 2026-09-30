@@ -30,8 +30,11 @@ final class PanelController {
             return
         }
         if let hiddenAt, Date().timeIntervalSince(hiddenAt) > Self.anchorGrace { anchor = nil }
-        if let anchor, anchor.isValid(appKey: snapshot.appKey, fieldKey: snapshot.fieldKey,
-                                      elementFrame: snapshot.elementFrame) {
+        if let anchor,
+            anchor.isValid(
+                appKey: snapshot.appKey, fieldKey: snapshot.fieldKey,
+                elementFrame: snapshot.elementFrame)
+        {
             hiddenAt = nil
             present(at: anchor.frame)
             return
@@ -41,8 +44,9 @@ final class PanelController {
             scheduleHide(immediately: immediately)
             return
         }
-        anchor = PanelAnchor(appKey: snapshot.appKey, fieldKey: snapshot.fieldKey,
-                             elementFrame: snapshot.elementFrame, frame: frame)
+        anchor = PanelAnchor(
+            appKey: snapshot.appKey, fieldKey: snapshot.fieldKey,
+            elementFrame: snapshot.elementFrame, frame: frame)
         hiddenAt = nil
         present(at: frame)
     }
@@ -55,13 +59,16 @@ final class PanelController {
         let element = snapshot.elementFrame.map { cocoaRect($0, primaryHeight: primary.frame.height) }
 
         let center = CGPoint(x: caret.midX, y: caret.midY)
-        guard let screen = NSScreen.screens.first(where: { $0.frame.contains(center) })
-                ?? NSScreen.screens.first(where: { $0.frame.intersects(caret) }) else { return nil }
+        guard
+            let screen = NSScreen.screens.first(where: { $0.frame.contains(center) })
+                ?? NSScreen.screens.first(where: { $0.frame.intersects(caret) })
+        else { return nil }
 
         let size = Metrics.panelSize
         let origin = PanelPlacement.origin(
             panelSize: size,
-            input: PlacementInput(caret: caret, element: element, isAtLineEnd: snapshot.isAtLineEnd, lift: snapshot.lift),
+            input: PlacementInput(
+                caret: caret, element: element, isAtLineEnd: snapshot.isAtLineEnd, lift: snapshot.lift),
             bounds: screen.visibleFrame.insetBy(dx: 8, dy: 8)
         )
         let scale = screen.backingScaleFactor
@@ -123,16 +130,18 @@ final class PanelController {
         isShown = false
         hideWork = nil
         hiddenAt = Date()
-        KeyEventPoster.globeUp()   // never leave Fn stuck down if the panel goes away mid-hold
+        KeyEventPoster.globeUp()  // never leave Fn stuck down if the panel goes away mid-hold
         visibilityToken &+= 1
         let token = visibilityToken
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.12
-            context.timingFunction = CAMediaTimingFunction(name: .easeIn)
-            panel.animator().alphaValue = 0
-        }, completionHandler: { [weak self] in
-            guard let self, !self.isShown, token == self.visibilityToken else { return }
-            self.panel.orderOut(nil)
-        })
+        NSAnimationContext.runAnimationGroup(
+            { context in
+                context.duration = 0.12
+                context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+                panel.animator().alphaValue = 0
+            },
+            completionHandler: { [weak self] in
+                guard let self, !self.isShown, token == self.visibilityToken else { return }
+                self.panel.orderOut(nil)
+            })
     }
 }

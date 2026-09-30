@@ -20,5 +20,12 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/WisprAssist"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
-codesign --force --options runtime --sign "${SIGN_IDENTITY:--}" "$APP"
+# Optional release metadata: VERSION=1.2.3 [BUILD_NUMBER=45]
+if [ -n "${VERSION:-}" ]; then
+    /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$APP/Contents/Info.plist"
+    /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${BUILD_NUMBER:-$VERSION}" "$APP/Contents/Info.plist"
+fi
+
+# Hardened runtime is required for notarization; a secure timestamp is required for Developer ID.
+codesign --force --options runtime ${SIGN_IDENTITY:+--timestamp} --sign "${SIGN_IDENTITY:--}" "$APP"
 echo "Built: $APP"

@@ -46,18 +46,22 @@ final class EditableFocusInspector {
         AXUIElementIsAttributeSettable(element, kAXValueAttribute as CFString, &settable)
 
         // `AXEditable` (native/WebKit) or an editable ancestor (Chromium contenteditable).
-        let marksEditable = (copy(element, "AXEditable") as? Bool) == true
+        let marksEditable =
+            (copy(element, "AXEditable") as? Bool) == true
             || copy(element, "AXHighestEditableAncestor") != nil
             || copy(element, "AXEditableAncestor") != nil
 
-        let describe = "\(bundleID ?? "?") role=\(role ?? "nil") sub=\(subrole ?? "nil") settable=\(settable.boolValue) sel=\(selection != nil) editable=\(marksEditable)"
-        guard EditabilityRules.isEditable(
-            role: role,
-            subrole: subrole,
-            valueIsSettable: settable.boolValue,
-            hasSelectedRange: selection != nil,
-            marksEditable: marksEditable
-        ) else {
+        let describe =
+            "\(bundleID ?? "?") role=\(role ?? "nil") sub=\(subrole ?? "nil") settable=\(settable.boolValue) sel=\(selection != nil) editable=\(marksEditable)"
+        guard
+            EditabilityRules.isEditable(
+                role: role,
+                subrole: subrole,
+                valueIsSettable: settable.boolValue,
+                hasSelectedRange: selection != nil,
+                marksEditable: marksEditable
+            )
+        else {
             DebugLog.note("REJECTED \(describe)")
             return nil
         }
@@ -92,7 +96,8 @@ final class EditableFocusInspector {
         if let c = caret {
             lastCaret = (pid, frame, c, atLineEnd, now)
         } else if let held = lastCaret, held.pid == pid, held.frame == frame,
-                  now.timeIntervalSince(held.time) < 1.5 {
+            now.timeIntervalSince(held.time) < 1.5
+        {
             caret = held.rect
             atLineEnd = held.atLineEnd
             source = "held"
@@ -112,8 +117,9 @@ final class EditableFocusInspector {
         }
         let lift = EditabilityRules.isTerminal(bundleID: bundleID) ? PanelPlacement.terminalLift : 0
         DebugLog.note("SHOWN \(describe) caret=\(source) frame=\(frame != nil) lift=\(lift)")
-        return FocusSnapshot(caretRect: anchor, elementFrame: frame, isAtLineEnd: atLineEnd, lift: lift,
-                             appKey: Int(pid), fieldKey: Int(bitPattern: CFHash(element)))
+        return FocusSnapshot(
+            caretRect: anchor, elementFrame: frame, isAtLineEnd: atLineEnd, lift: lift,
+            appKey: Int(pid), fieldKey: Int(bitPattern: CFHash(element)))
     }
 
     // MARK: - Element lookup
@@ -148,9 +154,11 @@ final class EditableFocusInspector {
         for target in candidates {
             guard let range = copy(target, "AXSelectedTextMarkerRange") else { continue }
             var result: CFTypeRef?
-            guard AXUIElementCopyParameterizedAttributeValue(
-                target, "AXBoundsForTextMarkerRange" as CFString, range, &result
-            ) == .success, let result, CFGetTypeID(result) == AXValueGetTypeID() else { continue }
+            guard
+                AXUIElementCopyParameterizedAttributeValue(
+                    target, "AXBoundsForTextMarkerRange" as CFString, range, &result
+                ) == .success, let result, CFGetTypeID(result) == AXValueGetTypeID()
+            else { continue }
             var rect = CGRect.zero
             guard AXValueGetValue(result as! AXValue, .cgRect, &rect), isUsable(rect) else { continue }
             return CGRect(x: rect.minX, y: rect.minY, width: 0, height: rect.height)
@@ -161,7 +169,10 @@ final class EditableFocusInspector {
     private func isLineEnd(in element: AXUIElement, at index: Int, caret: CGRect) -> Bool {
         // A caret directly before a line break has nothing after it on its line.
         if let ch = string(in: element, CFRange(location: index, length: 1)),
-           ch.contains(where: \.isNewline) { return true }
+            ch.contains(where: \.isNewline)
+        {
+            return true
+        }
         guard let next = bounds(in: element, CFRange(location: index, length: 1)), isUsable(next) else {
             return true
         }
@@ -178,9 +189,11 @@ final class EditableFocusInspector {
         var range = range
         guard let axRange = AXValueCreate(.cfRange, &range) else { return nil }
         var result: CFTypeRef?
-        guard AXUIElementCopyParameterizedAttributeValue(
-            element, kAXStringForRangeParameterizedAttribute as CFString, axRange, &result
-        ) == .success else { return nil }
+        guard
+            AXUIElementCopyParameterizedAttributeValue(
+                element, kAXStringForRangeParameterizedAttribute as CFString, axRange, &result
+            ) == .success
+        else { return nil }
         return result as? String
     }
 
@@ -188,9 +201,11 @@ final class EditableFocusInspector {
         var range = range
         guard let axRange = AXValueCreate(.cfRange, &range) else { return nil }
         var result: CFTypeRef?
-        guard AXUIElementCopyParameterizedAttributeValue(
-            element, kAXBoundsForRangeParameterizedAttribute as CFString, axRange, &result
-        ) == .success, let result, CFGetTypeID(result) == AXValueGetTypeID() else { return nil }
+        guard
+            AXUIElementCopyParameterizedAttributeValue(
+                element, kAXBoundsForRangeParameterizedAttribute as CFString, axRange, &result
+            ) == .success, let result, CFGetTypeID(result) == AXValueGetTypeID()
+        else { return nil }
         var rect = CGRect.zero
         guard AXValueGetValue(result as! AXValue, .cgRect, &rect) else { return nil }
         return rect
@@ -198,8 +213,9 @@ final class EditableFocusInspector {
 
     private func frame(of element: AXUIElement) -> CGRect? {
         guard let position = axValue(element, kAXPositionAttribute, .cgPoint, CGPoint.zero),
-              let size = axValue(element, kAXSizeAttribute, .cgSize, CGSize.zero),
-              size.width > 0, size.height > 0 else { return nil }
+            let size = axValue(element, kAXSizeAttribute, .cgSize, CGSize.zero),
+            size.width > 0, size.height > 0
+        else { return nil }
         return CGRect(origin: position, size: size)
     }
 

@@ -13,26 +13,41 @@ enum Metrics {
     static var globeButtonXRange: ClosedRange<CGFloat> { padding...(padding + buttonSize.width) }
 
     static var panelSize: CGSize {
-        CGSize(width: buttonSize.width * 2 + spacing + padding * 2,
-               height: buttonSize.height + padding * 2)
+        CGSize(
+            width: buttonSize.width * 2 + spacing + padding * 2,
+            height: buttonSize.height + padding * 2)
     }
 }
 
 struct ControlView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let onGlobeDown: () -> Void
     let onGlobeUp: () -> Void
     let onDeleteLine: () -> Void
 
     var body: some View {
         HStack(spacing: Metrics.spacing) {
-            HoldKeyButton(symbol: "globe", label: "Globe key",
-                          tooltip: "Hold to dictate (Globe / fn)  ·  Right-click: Return",
-                          onDown: onGlobeDown, onUp: onGlobeUp)
-            KeyButton(symbol: "delete.left", label: "Delete line",
-                      tooltip: "Delete line (⌘⌫)", action: onDeleteLine)
+            HoldKeyButton(
+                symbol: "globe", label: "Globe key",
+                tooltip: "Hold to dictate (Globe / fn)  ·  Right-click: Return",
+                onDown: onGlobeDown, onUp: onGlobeUp)
+            KeyButton(
+                symbol: "delete.left", label: "Delete line",
+                tooltip: "Delete line (⌘⌫)", action: onDeleteLine)
         }
         .padding(Metrics.padding)
         .frame(width: Metrics.panelSize.width, height: Metrics.panelSize.height)
+        .overlay(
+            // White edge on the dark theme, dark edge on the light one, so the panel stays
+            // visible over any background. Stroked inside the bounds so the window mask can't clip it.
+            RoundedRectangle(cornerRadius: Metrics.outerRadius, style: .circular)
+                .strokeBorder(
+                    colorScheme == .dark ? Color.white.opacity(0.9) : Color.black.opacity(0.85),
+                    lineWidth: 1
+                )
+                .allowsHitTesting(false)
+        )
     }
 }
 
@@ -144,10 +159,11 @@ private struct HoverTracker: NSViewRepresentable {
         override func updateTrackingAreas() {
             super.updateTrackingAreas()
             trackingAreas.forEach(removeTrackingArea)
-            addTrackingArea(NSTrackingArea(
-                rect: .zero,
-                options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
-                owner: self, userInfo: nil))
+            addTrackingArea(
+                NSTrackingArea(
+                    rect: .zero,
+                    options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+                    owner: self, userInfo: nil))
         }
 
         override func mouseEntered(with event: NSEvent) { onChange?(true) }

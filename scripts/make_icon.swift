@@ -1,5 +1,4 @@
-#!/usr/bin/env swift
-// Generates Resources/AppIcon.icns: indigo rounded square with the Globe + Delete glyphs.
+#!/usr/bin/env swift  // Generates Resources/AppIcon.icns: indigo rounded square with the Globe + Delete glyphs.
 // Usage: swift scripts/make_icon.swift   (re-run only when the design changes; the .icns is committed)
 import AppKit
 
@@ -16,20 +15,22 @@ func symbol(_ name: String, pointSize: CGFloat) -> NSImage {
 }
 
 func render(pixels s: Int) -> Data {
-    let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: s, pixelsHigh: s, bitsPerSample: 8,
-                               samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
-                               colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+    let rep = NSBitmapImageRep(
+        bitmapDataPlanes: nil, pixelsWide: s, pixelsHigh: s, bitsPerSample: 8,
+        samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+        colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
     NSGraphicsContext.saveGraphicsState()
     NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
     let canvas = CGFloat(s)
-    let side = canvas * 824 / 1024                      // macOS icon grid: 824pt artwork on 1024
+    let side = canvas * 824 / 1024  // macOS icon grid: 824pt artwork on 1024
     let r = NSRect(x: (canvas - side) / 2, y: (canvas - side) / 2, width: side, height: side)
     let path = NSBezierPath(roundedRect: r, xRadius: side * 0.225, yRadius: side * 0.225)
 
     NSGraphicsContext.current?.saveGraphicsState()
     path.addClip()
-    NSGradient(starting: NSColor(red: 0.42, green: 0.40, blue: 0.98, alpha: 1),
-               ending: NSColor(red: 0.20, green: 0.17, blue: 0.68, alpha: 1))!.draw(in: r, angle: -90)
+    NSGradient(
+        starting: NSColor(red: 0.42, green: 0.40, blue: 0.98, alpha: 1),
+        ending: NSColor(red: 0.20, green: 0.17, blue: 0.68, alpha: 1))!.draw(in: r, angle: -90)
     NSGradient(starting: NSColor(white: 1, alpha: 0.14), ending: NSColor(white: 1, alpha: 0))!
         .draw(in: NSRect(x: r.minX, y: r.midY, width: r.width, height: r.height / 2), angle: -90)
     NSGraphicsContext.current?.restoreGraphicsState()

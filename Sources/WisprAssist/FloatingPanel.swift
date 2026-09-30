@@ -4,13 +4,16 @@ import SwiftUI
 /// Borderless, non-activating panel: it floats above the active app but can never become
 /// key or main, so the text field the user is typing in keeps keyboard focus at all times.
 final class FloatingPanel: NSPanel {
-    init(onGlobeDown: @escaping () -> Void, onGlobeUp: @escaping () -> Void,
-         onGlobeRightClick: @escaping () -> Void, onDeleteLine: @escaping () -> Void) {
+    init(
+        onGlobeDown: @escaping () -> Void, onGlobeUp: @escaping () -> Void,
+        onGlobeRightClick: @escaping () -> Void, onDeleteLine: @escaping () -> Void
+    ) {
         self.onGlobeRightClick = onGlobeRightClick
         let size = Metrics.panelSize
-        super.init(contentRect: NSRect(origin: .zero, size: size),
-                   styleMask: [.borderless, .nonactivatingPanel],
-                   backing: .buffered, defer: true)
+        super.init(
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered, defer: true)
 
         title = "Wispr Assist"
         isFloatingPanel = true
@@ -28,11 +31,12 @@ final class FloatingPanel: NSPanel {
         let effect = NSVisualEffectView(frame: NSRect(origin: .zero, size: size))
         effect.material = .popover
         effect.blendingMode = .behindWindow
-        effect.state = .active            // stay vibrant even though the window is never key
+        effect.state = .active  // stay vibrant even though the window is never key
         effect.maskImage = Self.roundedMask(radius: Metrics.outerRadius)
         effect.autoresizingMask = [.width, .height]
 
-        let hosting = FirstMouseHostingView(rootView: ControlView(onGlobeDown: onGlobeDown, onGlobeUp: onGlobeUp, onDeleteLine: onDeleteLine))
+        let hosting = FirstMouseHostingView(
+            rootView: ControlView(onGlobeDown: onGlobeDown, onGlobeUp: onGlobeUp, onDeleteLine: onDeleteLine))
         hosting.frame = effect.bounds
         hosting.autoresizingMask = [.width, .height]
         effect.addSubview(hosting)

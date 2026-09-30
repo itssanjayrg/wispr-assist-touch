@@ -51,18 +51,22 @@ final class FocusTracker {
         running = true
 
         let center = NSWorkspace.shared.notificationCenter
-        workspaceTokens.append(center.addObserver(
-            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
-        ) { [weak self] note in
-            let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
-            self?.attach(to: app)
-            self?.scheduleRefresh()
-        })
-        for name in [NSWorkspace.activeSpaceDidChangeNotification, NSWorkspace.didHideApplicationNotification,
-                     NSWorkspace.didUnhideApplicationNotification] {
-            workspaceTokens.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+        workspaceTokens.append(
+            center.addObserver(
+                forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
+            ) { [weak self] note in
+                let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+                self?.attach(to: app)
                 self?.scheduleRefresh()
             })
+        for name in [
+            NSWorkspace.activeSpaceDidChangeNotification, NSWorkspace.didHideApplicationNotification,
+            NSWorkspace.didUnhideApplicationNotification
+        ] {
+            workspaceTokens.append(
+                center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                    self?.scheduleRefresh()
+                })
         }
 
         attach(to: NSWorkspace.shared.frontmostApplication)
@@ -137,14 +141,18 @@ final class FocusTracker {
             // Electron forks rename the framework (e.g. "Codex Framework"), but every Chromium
             // host ships "<Name> Helper (Renderer).app".
             let entries = (try? FileManager.default.contentsOfDirectory(atPath: frameworks.path)) ?? []
-            if entries.contains(where: { $0.hasSuffix("Helper (Renderer).app") || $0 == "Electron Framework.framework"
-                                          || $0 == "Chromium Embedded Framework.framework" }) {
+            if entries.contains(where: {
+                $0.hasSuffix("Helper (Renderer).app") || $0 == "Electron Framework.framework"
+                    || $0 == "Chromium Embedded Framework.framework"
+            }) {
                 return true
             }
         }
         let id = (app.bundleIdentifier ?? "").lowercased()
-        return ["com.google.chrome", "org.chromium", "com.brave", "com.microsoft.edgemac",
-                "com.vivaldi", "company.thebrowser", "com.operasoftware"].contains { id.hasPrefix($0) }
+        return [
+            "com.google.chrome", "org.chromium", "com.brave", "com.microsoft.edgemac",
+            "com.vivaldi", "company.thebrowser", "com.operasoftware"
+        ].contains { id.hasPrefix($0) }
     }
 
     private func detach() {

@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import WisprAssistCore
 
 final class PanelPlacementTests: XCTestCase {
@@ -29,7 +30,8 @@ final class PanelPlacementTests: XCTestCase {
     func testMultilineAtLineEndUsesTrailingSide() {
         let caret = CGRect(x: 600, y: 500, width: 0, height: 18)
         let editor = CGRect(x: 100, y: 100, width: 900, height: 700)
-        let o = PanelPlacement.origin(panelSize: size, input: .init(caret: caret, element: editor, isAtLineEnd: true), bounds: screen)
+        let o = PanelPlacement.origin(
+            panelSize: size, input: .init(caret: caret, element: editor, isAtLineEnd: true), bounds: screen)
         XCTAssertEqual(o.x, caret.maxX + PanelPlacement.gap, accuracy: 0.001)
         XCTAssertEqual(o.y, caret.midY - size.height / 2, accuracy: 0.001)
     }
@@ -37,7 +39,8 @@ final class PanelPlacementTests: XCTestCase {
     func testMultilineMidLineUsesAbove() {
         let caret = CGRect(x: 600, y: 500, width: 0, height: 18)
         let editor = CGRect(x: 100, y: 100, width: 900, height: 700)
-        let o = PanelPlacement.origin(panelSize: size, input: .init(caret: caret, element: editor, isAtLineEnd: false), bounds: screen)
+        let o = PanelPlacement.origin(
+            panelSize: size, input: .init(caret: caret, element: editor, isAtLineEnd: false), bounds: screen)
         XCTAssertEqual(o.y, caret.maxY + PanelPlacement.gap, accuracy: 0.001)
     }
 
@@ -52,7 +55,8 @@ final class PanelPlacementTests: XCTestCase {
 
     func testLiftMovesPanelUp() {
         let caret = CGRect(x: 500, y: 400, width: 0, height: 18)
-        let o = PanelPlacement.origin(panelSize: size, input: .init(caret: caret, lift: PanelPlacement.terminalLift), bounds: screen)
+        let o = PanelPlacement.origin(
+            panelSize: size, input: .init(caret: caret, lift: PanelPlacement.terminalLift), bounds: screen)
         XCTAssertEqual(o.y, caret.maxY + PanelPlacement.gap + PanelPlacement.terminalLift, accuracy: 0.001)
     }
 

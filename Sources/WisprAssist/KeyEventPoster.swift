@@ -7,9 +7,9 @@ import Foundation
 enum KeyEventPoster {
     private static let queue = DispatchQueue(label: "app.wisprassist.keys", qos: .userInteractive)
 
-    private static let returnKeyCode: CGKeyCode = 36   // kVK_Return
-    private static let deleteKeyCode: CGKeyCode = 51   // kVK_Delete (Backspace)
-    private static let functionKeyCode: CGKeyCode = 63 // kVK_Function (Fn / Globe)
+    private static let returnKeyCode: CGKeyCode = 36  // kVK_Return
+    private static let deleteKeyCode: CGKeyCode = 51  // kVK_Delete (Backspace)
+    private static let functionKeyCode: CGKeyCode = 63  // kVK_Function (Fn / Globe)
 
     /// Plain Return.
     static func pressReturn() { press(returnKeyCode, flags: []) }
@@ -55,7 +55,9 @@ enum KeyEventPoster {
 
     private static func postGlobe(down: Bool) {
         let source = CGEventSource(stateID: .hidSystemState)
-        guard let event = CGEvent(keyboardEventSource: source, virtualKey: functionKeyCode, keyDown: down) else { return }
+        guard let event = CGEvent(keyboardEventSource: source, virtualKey: functionKeyCode, keyDown: down) else {
+            return
+        }
         event.type = .flagsChanged
         event.flags = down ? .maskSecondaryFn : []
         event.post(tap: .cghidEventTap)

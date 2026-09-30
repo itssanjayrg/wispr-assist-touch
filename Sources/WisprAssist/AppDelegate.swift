@@ -1,4 +1,5 @@
 import AppKit
+import ServiceManagement
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let panelController = PanelController()
@@ -17,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Settings.registerDefaults()
+        LaunchAtLogin.configureOnLaunch()
         buildStatusItem()
 
         if !AccessibilityPermission.isTrusted { AccessibilityPermission.prompt() }
@@ -88,7 +90,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         loginItem = login
 
         menu.addItem(.separator())
-        let quit = NSMenuItem(title: "Quit Wispr Assist", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let quit = NSMenuItem(
+            title: "Quit Wispr Assist", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quit)
 
         item.menu = menu
@@ -109,6 +112,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         enabledItem?.isEnabled = trusted
         accessItem?.title = trusted ? "Accessibility Access Granted" : "Grant Accessibility Access…"
         accessItem?.state = trusted ? .on : .off
+        loginItem?.title = LaunchAtLogin.needsApproval ? "Open at Login (allow in System Settings…)" : "Open at Login"
         loginItem?.state = LaunchAtLogin.isEnabled ? .on : .off
     }
 
@@ -126,6 +130,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func toggleLogin() {
-        LaunchAtLogin.set(!LaunchAtLogin.isEnabled)
+        if LaunchAtLogin.needsApproval {
+            SMAppService.openSystemSettingsLoginItems()
+        } else {
+            LaunchAtLogin.set(!LaunchAtLogin.isEnabled)
+        }
     }
 }

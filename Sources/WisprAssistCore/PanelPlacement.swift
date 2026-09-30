@@ -48,7 +48,8 @@ public enum PanelPlacement {
             return element.height > max(caret.height, 1) * multilineFactor
         }()
 
-        let order: [Side] = (isMultiline && input.isAtLineEnd)
+        let order: [Side] =
+            (isMultiline && input.isAtLineEnd)
             ? [.trailing, .above, .below, .leading]
             : [.above, .below, .trailing, .leading]
 
