@@ -30,8 +30,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { self?.reconcile() }
         }
         // …and keep a cheap poll as a safety net (also catches revocation).
-        let timer = Timer(timeInterval: 2, repeats: true) { [weak self] _ in self?.reconcile() }
-        timer.tolerance = 0.5
+        let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in self?.reconcile() }
+        timer.tolerance = 0.2
         RunLoop.main.add(timer, forMode: .common)
         trustTimer = timer
 
@@ -40,8 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         tracker.stop()
-        KeyEventPoster.globeUp()
-        panelController.update(nil, immediately: true)
+        panelController.hideNow()
     }
 
     /// Single place that makes reality match (permission × user setting).
@@ -51,7 +50,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             tracker.start()
         } else {
             tracker.stop()
-            panelController.update(nil, immediately: true)
+            panelController.hideNow()
+            DebugLog.note("tracking off (trusted=\(trusted), enabled=\(Settings.isEnabled)): panel hidden")
         }
         updateStatusIcon(trusted: trusted)
     }

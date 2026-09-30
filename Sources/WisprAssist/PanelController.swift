@@ -12,6 +12,7 @@ final class PanelController {
     )
 
     private var isShown = false
+    private var panelCreated = false
     private var targetFrame = NSRect.zero
     private var hideWork: DispatchWorkItem?
     private var visibilityToken = 0
@@ -90,6 +91,7 @@ final class PanelController {
 
         if !isShown {
             isShown = true
+            panelCreated = true
             targetFrame = frame
             if !panel.isVisible { panel.alphaValue = 0 }
             panel.setFrame(frame, display: false)
@@ -115,6 +117,20 @@ final class PanelController {
                 panel.animator().setFrame(frame, display: true)
             }
         }
+    }
+
+    /// Removes the panel at once, with no fade and no debounce. Used when tracking stops (permission
+    /// revoked, feature switched off, app quitting) so a stale panel can never be left on screen.
+    func hideNow() {
+        hideWork?.cancel()
+        hideWork = nil
+        visibilityToken &+= 1  // invalidates any fade-out completion still in flight
+        isShown = false
+        hiddenAt = Date()
+        KeyEventPoster.globeUp()
+        guard panelCreated else { return }
+        panel.orderOut(nil)
+        panel.alphaValue = 0
     }
 
     private func scheduleHide(immediately: Bool) {
