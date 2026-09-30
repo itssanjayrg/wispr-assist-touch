@@ -4,7 +4,9 @@ import SwiftUI
 /// Borderless, non-activating panel: it floats above the active app but can never become
 /// key or main, so the text field the user is typing in keeps keyboard focus at all times.
 final class FloatingPanel: NSPanel {
-    init(onGlobeDown: @escaping () -> Void, onGlobeUp: @escaping () -> Void, onReturn: @escaping () -> Void) {
+    init(onGlobeDown: @escaping () -> Void, onGlobeUp: @escaping () -> Void,
+         onGlobeRightClick: @escaping () -> Void, onDeleteLine: @escaping () -> Void) {
+        self.onGlobeRightClick = onGlobeRightClick
         let size = Metrics.panelSize
         super.init(contentRect: NSRect(origin: .zero, size: size),
                    styleMask: [.borderless, .nonactivatingPanel],
@@ -30,7 +32,7 @@ final class FloatingPanel: NSPanel {
         effect.maskImage = Self.roundedMask(radius: Metrics.outerRadius)
         effect.autoresizingMask = [.width, .height]
 
-        let hosting = FirstMouseHostingView(rootView: ControlView(onGlobeDown: onGlobeDown, onGlobeUp: onGlobeUp, onReturn: onReturn))
+        let hosting = FirstMouseHostingView(rootView: ControlView(onGlobeDown: onGlobeDown, onGlobeUp: onGlobeUp, onDeleteLine: onDeleteLine))
         hosting.frame = effect.bounds
         hosting.autoresizingMask = [.width, .height]
         effect.addSubview(hosting)
@@ -39,6 +41,22 @@ final class FloatingPanel: NSPanel {
         effect.wantsLayer = true
         contentView = effect
         setAccessibilityLabel("Wispr Assist controls")
+    }
+
+    private let onGlobeRightClick: () -> Void
+
+    /// Right-click on the Globe button acts as Return. SwiftUI has no right-click gesture for a
+    /// panel that is never key, so it is handled here, before normal dispatch.
+    override func sendEvent(_ event: NSEvent) {
+        switch event.type {
+        case .rightMouseDown:
+            return
+        case .rightMouseUp:
+            if Metrics.globeButtonXRange.contains(event.locationInWindow.x) { onGlobeRightClick() }
+            return
+        default:
+            super.sendEvent(event)
+        }
     }
 
     override var canBecomeKey: Bool { false }

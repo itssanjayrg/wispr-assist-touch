@@ -7,13 +7,20 @@ final class PanelController {
     private lazy var panel = FloatingPanel(
         onGlobeDown: { KeyEventPoster.globeDown() },
         onGlobeUp: { KeyEventPoster.globeUp() },
-        onReturn: { KeyEventPoster.pressReturn() }
+        onGlobeRightClick: { KeyEventPoster.pressReturn() },
+        onDeleteLine: { KeyEventPoster.pressDeleteLine() }
     )
 
     private var isShown = false
     private var targetFrame = NSRect.zero
     private var hideWork: DispatchWorkItem?
     private var visibilityToken = 0
+    /// Where the panel landed for the current field; it stays there while typing continues.
+    private var anchor: PanelAnchor?
+    /// When the panel last hid. Dictation often blanks focus for a moment, so the anchor survives
+    /// a short gap; after a longer one (user went elsewhere and came back) it is forgotten.
+    private var hiddenAt: Date?
+    private static let anchorGrace: TimeInterval = 2
 
     private var reduceMotion: Bool { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
 
@@ -22,10 +29,21 @@ final class PanelController {
             scheduleHide(immediately: immediately)
             return
         }
+        if let hiddenAt, Date().timeIntervalSince(hiddenAt) > Self.anchorGrace { anchor = nil }
+        if let anchor, anchor.isValid(appKey: snapshot.appKey, fieldKey: snapshot.fieldKey,
+                                      elementFrame: snapshot.elementFrame) {
+            hiddenAt = nil
+            present(at: anchor.frame)
+            return
+        }
+        DebugLog.note("ANCHOR new placement (\(anchor == nil ? "no anchor" : "different field/app"))")
         guard let frame = placement(for: snapshot) else {
             scheduleHide(immediately: immediately)
             return
         }
+        anchor = PanelAnchor(appKey: snapshot.appKey, fieldKey: snapshot.fieldKey,
+                             elementFrame: snapshot.elementFrame, frame: frame)
+        hiddenAt = nil
         present(at: frame)
     }
 
@@ -104,6 +122,7 @@ final class PanelController {
         guard isShown else { return }
         isShown = false
         hideWork = nil
+        hiddenAt = Date()
         KeyEventPoster.globeUp()   // never leave Fn stuck down if the panel goes away mid-hold
         visibilityToken &+= 1
         let token = visibilityToken

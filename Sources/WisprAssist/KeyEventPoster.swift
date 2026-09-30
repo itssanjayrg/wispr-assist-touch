@@ -1,23 +1,29 @@
 import CoreGraphics
 import Foundation
 
-/// Synthesises the two key presses the control exposes. Requires the Accessibility permission
+/// Synthesises the key presses the control exposes. Requires the Accessibility permission
 /// (already needed for focus tracking). Events go through the HID tap, exactly as a hardware
 /// key would, and the panel never becomes key, so they land in the app the user is typing in.
 enum KeyEventPoster {
     private static let queue = DispatchQueue(label: "app.wisprassist.keys", qos: .userInteractive)
 
     private static let returnKeyCode: CGKeyCode = 36   // kVK_Return
+    private static let deleteKeyCode: CGKeyCode = 51   // kVK_Delete (Backspace)
     private static let functionKeyCode: CGKeyCode = 63 // kVK_Function (Fn / Globe)
 
-    /// Same as pressing Return.
-    static func pressReturn() {
+    /// Plain Return.
+    static func pressReturn() { press(returnKeyCode, flags: []) }
+
+    /// ⌘Delete (⌘⌫): deletes from the caret to the start of the line in macOS text fields.
+    static func pressDeleteLine() { press(deleteKeyCode, flags: .maskCommand) }
+
+    private static func press(_ keyCode: CGKeyCode, flags: CGEventFlags) {
         queue.async {
             let source = CGEventSource(stateID: .hidSystemState)
-            let down = CGEvent(keyboardEventSource: source, virtualKey: returnKeyCode, keyDown: true)
-            let up = CGEvent(keyboardEventSource: source, virtualKey: returnKeyCode, keyDown: false)
-            down?.flags = []
-            up?.flags = []
+            let down = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true)
+            let up = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false)
+            down?.flags = flags
+            up?.flags = flags
             down?.post(tap: .cghidEventTap)
             usleep(12_000)
             up?.post(tap: .cghidEventTap)

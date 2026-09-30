@@ -10,6 +10,9 @@ struct FocusSnapshot: Equatable {
     var isAtLineEnd: Bool
     /// Extra upward offset for the panel (terminals).
     var lift: CGFloat = 0
+    /// Process and element identity of the focused field (see `PanelAnchor`).
+    var appKey: Int = 0
+    var fieldKey: Int = 0
 }
 
 /// Reads the focused element through the Accessibility API. Not thread-affine: it is called
@@ -109,7 +112,8 @@ final class EditableFocusInspector {
         }
         let lift = EditabilityRules.isTerminal(bundleID: bundleID) ? PanelPlacement.terminalLift : 0
         DebugLog.note("SHOWN \(describe) caret=\(source) frame=\(frame != nil) lift=\(lift)")
-        return FocusSnapshot(caretRect: anchor, elementFrame: frame, isAtLineEnd: atLineEnd, lift: lift)
+        return FocusSnapshot(caretRect: anchor, elementFrame: frame, isAtLineEnd: atLineEnd, lift: lift,
+                             appKey: Int(pid), fieldKey: Int(bitPattern: CFHash(element)))
     }
 
     // MARK: - Element lookup

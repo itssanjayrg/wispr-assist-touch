@@ -9,6 +9,9 @@ enum Metrics {
     static let outerRadius: CGFloat = 12
     static let innerRadius: CGFloat = 8
 
+    /// Horizontal extent of the Globe button inside the panel (window coordinates).
+    static var globeButtonXRange: ClosedRange<CGFloat> { padding...(padding + buttonSize.width) }
+
     static var panelSize: CGSize {
         CGSize(width: buttonSize.width * 2 + spacing + padding * 2,
                height: buttonSize.height + padding * 2)
@@ -18,14 +21,15 @@ enum Metrics {
 struct ControlView: View {
     let onGlobeDown: () -> Void
     let onGlobeUp: () -> Void
-    let onReturn: () -> Void
+    let onDeleteLine: () -> Void
 
     var body: some View {
         HStack(spacing: Metrics.spacing) {
             HoldKeyButton(symbol: "globe", label: "Globe key",
-                          tooltip: "Hold to press Globe (fn)", onDown: onGlobeDown, onUp: onGlobeUp)
-            KeyButton(symbol: "return", label: "Return key",
-                      tooltip: "Return", action: onReturn)
+                          tooltip: "Hold to dictate (Globe / fn)  ·  Right-click: Return",
+                          onDown: onGlobeDown, onUp: onGlobeUp)
+            KeyButton(symbol: "delete.left", label: "Delete line",
+                      tooltip: "Delete line (⌘⌫)", action: onDeleteLine)
         }
         .padding(Metrics.padding)
         .frame(width: Metrics.panelSize.width, height: Metrics.panelSize.height)
@@ -95,6 +99,7 @@ private struct HoldKeyButton: View {
             .help(tooltip)
             .accessibilityLabel(label)
             .accessibilityAddTraits(.isButton)
+            .accessibilityAction(named: "Press Return") { KeyEventPoster.pressReturn() }
             .accessibilityAction {
                 // VoiceOver / Switch Control "press": a short hold.
                 onDown()
