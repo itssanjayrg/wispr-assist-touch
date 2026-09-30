@@ -109,14 +109,16 @@ final class EditableFocusInspector {
         } else if let f = frame {
             // No caret anywhere: anchor at the field's leading edge (where text starts) instead
             // of its centre, spanning the field's height so the panel clears the whole field.
-            anchor = CGRect(x: f.minX + 10 + Metrics.panelSize.width / 2, y: f.minY, width: 0, height: f.height)
+            anchor = CGRect(x: f.minX + 10 + Metrics.pillSize.width / 2, y: f.minY, width: 0, height: f.height)
             source = "frame-leading"
         } else {
             DebugLog.note("NO GEOMETRY \(describe)")
             return nil
         }
         let lift = EditabilityRules.isTerminal(bundleID: bundleID) ? PanelPlacement.terminalLift : 0
-        DebugLog.note("SHOWN \(describe) caret=\(source) frame=\(frame != nil) lift=\(lift)")
+        DebugLog.note(
+            "SHOWN \(describe) caret=\(source) anchor=\(Self.fmt(anchor)) frame=\(frame.map(Self.fmt) ?? "nil") lift=\(lift)"
+        )
         return FocusSnapshot(
             caretRect: anchor, elementFrame: frame, isAtLineEnd: atLineEnd, lift: lift,
             appKey: Int(pid), fieldKey: Int(bitPattern: CFHash(element)))
@@ -177,6 +179,10 @@ final class EditableFocusInspector {
             return true
         }
         return abs(next.midY - caret.midY) > caret.height * 0.6
+    }
+
+    private static func fmt(_ r: CGRect) -> String {
+        "(\(Int(r.minX)),\(Int(r.minY)) \(Int(r.width))x\(Int(r.height)))"
     }
 
     private func isUsable(_ r: CGRect) -> Bool {

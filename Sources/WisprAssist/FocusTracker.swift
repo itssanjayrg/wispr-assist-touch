@@ -24,7 +24,6 @@ final class FocusTracker {
     private var generation = 0
     private var last: FocusSnapshot?
     private var pollTick = 0
-    private var manualAXPIDs = Set<pid_t>()
 
     private static let notifications: [String] = [
         kAXFocusedUIElementChangedNotification,
@@ -110,14 +109,7 @@ final class FocusTracker {
         let element = AXUIElementCreateApplication(pid)
         AXUIElementSetMessagingTimeout(element, 0.25)
 
-        // Chromium / Electron only build their accessibility tree on request. Doing this for
-        // other apps is pointless, so limit it (and do it once per process).
-        if Self.isChromiumBased(app), manualAXPIDs.insert(pid).inserted {
-            queue.async {
-                AXUIElementSetAttributeValue(element, "AXManualAccessibility" as CFString, kCFBooleanTrue)
-                AXUIElementSetAttributeValue(element, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue)
-            }
-        }
+        enableRichAccessibility(for: app)
 
         var created: AXObserver?
         let callback: AXObserverCallback = { _, _, _, refcon in
@@ -135,17 +127,42 @@ final class FocusTracker {
         observedPID = pid
     }
 
+    /// Chromium / Electron / CEF apps only build their accessibility tree when asked. `AXManualAccessibility`
+    /// is harmless for other apps (they report the attribute as unsupported), so it is sent to every app;
+    /// `AXEnhancedUserInterface` can change how native apps behave, so it is limited to Chromium hosts.
+    private func enableRichAccessibility(for app: NSRunningApplication) {
+        let element = AXUIElementCreateApplication(app.processIdentifier)
+        AXUIElementSetMessagingTimeout(element, 0.25)
+        let chromium = Self.isChromiumBased(app)
+        queue.async {
+            AXUIElementSetAttributeValue(element, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+            if chromium {
+                AXUIElementSetAttributeValue(element, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue)
+            }
+        }
+    }
+
     private static func isChromiumBased(_ app: NSRunningApplication) -> Bool {
         if let url = app.bundleURL {
             let frameworks = url.appendingPathComponent("Contents/Frameworks")
-            // Electron forks rename the framework (e.g. "Codex Framework"), but every Chromium
-            // host ships "<Name> Helper (Renderer).app".
-            let entries = (try? FileManager.default.contentsOfDirectory(atPath: frameworks.path)) ?? []
+            let fm = FileManager.default
+            let entries = (try? fm.contentsOfDirectory(atPath: frameworks.path)) ?? []
+            // Electron / CEF hosts: a helper app next to the framework, or a well-known framework name.
             if entries.contains(where: {
-                $0.hasSuffix("Helper (Renderer).app") || $0 == "Electron Framework.framework"
+                $0.hasSuffix("(Renderer).app") || $0 == "Electron Framework.framework"
                     || $0 == "Chromium Embedded Framework.framework"
             }) {
                 return true
+            }
+            // Chromium forks that bury the helpers inside their own framework
+            // (e.g. "Codex Framework.framework/Helpers/Codex (Renderer).app").
+            for framework in entries where framework.hasSuffix(".framework") {
+                let helpers = frameworks.appendingPathComponent(framework).appendingPathComponent("Helpers")
+                if ((try? fm.contentsOfDirectory(atPath: helpers.path)) ?? []).contains(where: {
+                    $0.hasSuffix("(Renderer).app")
+                }) {
+                    return true
+                }
             }
         }
         let id = (app.bundleIdentifier ?? "").lowercased()

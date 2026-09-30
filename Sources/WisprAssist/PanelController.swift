@@ -8,10 +8,15 @@ final class PanelController {
         onGlobeDown: { KeyEventPoster.globeDown() },
         onGlobeUp: { KeyEventPoster.globeUp() },
         onGlobeRightClick: { KeyEventPoster.pressReturn() },
-        onDeleteLine: { KeyEventPoster.pressDeleteLine() }
+        onDeleteLine: { KeyEventPoster.pressDeleteLine() },
+        onHandleDrag: { [weak self] drag in self?.handleDrag(drag) },
+        onNudge: { [weak self] delta in self?.nudge(delta) }
     )
 
     private var isShown = false
+    /// True while the user is dragging the move handle: automatic placement and hiding are paused.
+    private var isDragging = false
+    private var cursorPushed = false
     private var panelCreated = false
     private var targetFrame = NSRect.zero
     private var hideWork: DispatchWorkItem?
@@ -26,6 +31,7 @@ final class PanelController {
     private var reduceMotion: Bool { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
 
     func update(_ snapshot: FocusSnapshot?, immediately: Bool = false) {
+        if isDragging { return }  // the user is positioning the panel; leave it alone
         guard let snapshot else {
             scheduleHide(immediately: immediately)
             return
@@ -65,7 +71,7 @@ final class PanelController {
                 ?? NSScreen.screens.first(where: { $0.frame.intersects(caret) })
         else { return nil }
 
-        let size = Metrics.panelSize
+        let size = Metrics.pillSize
         let origin = PanelPlacement.origin(
             panelSize: size,
             input: PlacementInput(
@@ -74,12 +80,69 @@ final class PanelController {
         )
         let scale = screen.backingScaleFactor
         let snapped = CGPoint(x: (origin.x * scale).rounded() / scale, y: (origin.y * scale).rounded() / scale)
-        return NSRect(origin: snapped, size: size)
+        // The window extends left of the pill (for the move handle); the pill itself stays put.
+        return NSRect(
+            origin: CGPoint(x: snapped.x - Metrics.handleOverhang, y: snapped.y), size: Metrics.windowSize)
     }
 
     /// Accessibility space (top-left origin) → Cocoa space (bottom-left origin).
     private func cocoaRect(_ r: CGRect, primaryHeight: CGFloat) -> CGRect {
         CGRect(x: r.minX, y: primaryHeight - r.maxY, width: r.width, height: r.height)
+    }
+
+    // MARK: - Moving the panel by its handle
+
+    func handleDrag(_ drag: FloatingPanel.HandleDrag) {
+        switch drag {
+        case .began:
+            isDragging = true
+            hideWork?.cancel()
+            hideWork = nil
+            NSCursor.closedHand.push()
+            cursorPushed = true
+        case .moved(let origin):
+            guard isDragging else { return }
+            panel.setFrameOrigin(clampedOrigin(origin))
+        case .ended:
+            releaseCursor()
+            guard isDragging else { return }
+            isDragging = false
+            commitUserPosition()
+        }
+    }
+
+    /// Keyboard / VoiceOver alternative to dragging: nudges the panel by `delta` points.
+    func nudge(_ delta: CGSize) {
+        guard isShown, !isDragging else { return }
+        let o = panel.frame.origin
+        panel.setFrameOrigin(clampedOrigin(CGPoint(x: o.x + delta.width, y: o.y + delta.height)))
+        commitUserPosition()
+    }
+
+    /// The moved position becomes this session's anchor, so it survives caret moves and dictation but
+    /// not a new field or app (see `PanelAnchor`).
+    private func commitUserPosition() {
+        targetFrame = panel.frame
+        anchor = anchor?.moved(to: panel.frame)
+    }
+
+    private func clampedOrigin(_ proposed: CGPoint) -> CGPoint {
+        let size = Metrics.windowSize
+        let center = CGPoint(x: proposed.x + size.width / 2, y: proposed.y + size.height / 2)
+        let screen =
+            NSScreen.screens.first(where: { $0.frame.contains(center) })
+            ?? NSScreen.screens.first(where: { $0.frame.intersects(panel.frame) }) ?? NSScreen.main
+        guard let screen else { return proposed }
+        return PanelDrag.clamp(
+            origin: proposed, size: size, home: anchor?.homeOrigin ?? panel.frame.origin,
+            bounds: screen.visibleFrame.insetBy(dx: 4, dy: 4))
+    }
+
+    private func releaseCursor() {
+        if cursorPushed {
+            NSCursor.pop()
+            cursorPushed = false
+        }
     }
 
     // MARK: - Show / move / hide
@@ -122,6 +185,8 @@ final class PanelController {
     /// Removes the panel at once, with no fade and no debounce. Used when tracking stops (permission
     /// revoked, feature switched off, app quitting) so a stale panel can never be left on screen.
     func hideNow() {
+        isDragging = false
+        releaseCursor()
         hideWork?.cancel()
         hideWork = nil
         visibilityToken &+= 1  // invalidates any fade-out completion still in flight

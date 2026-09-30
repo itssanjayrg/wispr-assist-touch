@@ -12,7 +12,7 @@ panel beside the caret, and turns button presses into synthetic key events.
             │                                                          button events ──▶ KeyEventPoster ──▶ CGEvent (HID tap)
             └──────────────────────────────────────────────────────────────────────────────────────────────┘
                      uses pure, unit-tested logic from ▶ WisprAssistCore:
-                     EditabilityRules · PanelPlacement · PanelAnchor
+                     EditabilityRules · PanelPlacement · PanelAnchor · PanelDrag
 ```
 
 ## Modules
@@ -22,6 +22,7 @@ panel beside the caret, and turns button presses into synthetic key events.
   editable text input (and never a secure/password field). Also identifies terminal apps.
 - `PanelPlacement`: given the caret, the field frame and the screen, computes where the panel goes
   (above / below / beside the caret, clamped to the visible screen area).
+- `PanelDrag`: limits how far and where the user may move the panel by its handle.
 - `PanelAnchor`: remembers where the panel landed for the current field and decides whether a new
   snapshot is still "the same field" (so the panel doesn't chase the caret).
 
@@ -38,6 +39,10 @@ panel beside the caret, and turns button presses into synthetic key events.
 - `FloatingPanel` / `ControlView`: a borderless **non-activating** panel that can never become key, so
   the text field keeps keyboard focus. Right-clicks are handled in `sendEvent` because SwiftUI has no
   right-click gesture for a panel that is never key.
+- Move handle: the window is slightly larger than the visible pill so a hover-revealed ✥ badge can hang
+  over its top-left corner (transparent elsewhere, so clicks pass through). `FloatingPanel.sendEvent`
+  tracks the drag; `PanelController` clamps it with `PanelDrag` (≤ 300 pt from the automatic position,
+  on screen) and stores the result in the session's `PanelAnchor`, which is discarded on a new field/app.
 - `KeyEventPoster`: posts Fn (held while the Globe button is held), Return and ⌘⌫ through the HID tap.
   Fn state lives on one serial queue so an "up" is never sent without a "down".
 

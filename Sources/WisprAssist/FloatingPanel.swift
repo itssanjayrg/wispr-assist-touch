@@ -4,12 +4,29 @@ import SwiftUI
 /// Borderless, non-activating panel: it floats above the active app but can never become
 /// key or main, so the text field the user is typing in keeps keyboard focus at all times.
 final class FloatingPanel: NSPanel {
+    /// Reported to the controller, which decides where the panel may actually go.
+    enum HandleDrag {
+        case began
+        case moved(origin: CGPoint)
+        case ended
+    }
+
+    private let onGlobeRightClick: () -> Void
+    private let onHandleDrag: (HandleDrag) -> Void
+    private let handleState: HandleState
+    private var dragStartMouse: CGPoint?
+    private var dragStartOrigin = CGPoint.zero
+
     init(
         onGlobeDown: @escaping () -> Void, onGlobeUp: @escaping () -> Void,
-        onGlobeRightClick: @escaping () -> Void, onDeleteLine: @escaping () -> Void
+        onGlobeRightClick: @escaping () -> Void, onDeleteLine: @escaping () -> Void,
+        onHandleDrag: @escaping (HandleDrag) -> Void, onNudge: @escaping (CGSize) -> Void
     ) {
         self.onGlobeRightClick = onGlobeRightClick
-        let size = Metrics.panelSize
+        self.onHandleDrag = onHandleDrag
+        let state = HandleState()
+        self.handleState = state
+        let size = Metrics.windowSize
         super.init(
             contentRect: NSRect(origin: .zero, size: size),
             styleMask: [.borderless, .nonactivatingPanel],
@@ -28,39 +45,62 @@ final class FloatingPanel: NSPanel {
         animationBehavior = .none
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle, .stationary]
 
-        let effect = NSVisualEffectView(frame: NSRect(origin: .zero, size: size))
+        // Transparent container (window-sized) so the move handle can overhang the pill.
+        let container = NSView(frame: NSRect(origin: .zero, size: size))
+
+        let effect = NSVisualEffectView(frame: Metrics.pillRect)
         effect.material = .popover
         effect.blendingMode = .behindWindow
         effect.state = .active  // stay vibrant even though the window is never key
         effect.maskImage = Self.roundedMask(radius: Metrics.outerRadius)
-        effect.autoresizingMask = [.width, .height]
+        container.addSubview(effect)
 
         let hosting = FirstMouseHostingView(
-            rootView: ControlView(onGlobeDown: onGlobeDown, onGlobeUp: onGlobeUp, onDeleteLine: onDeleteLine))
-        hosting.frame = effect.bounds
+            rootView: ControlView(
+                handleState: state, onGlobeDown: onGlobeDown, onGlobeUp: onGlobeUp,
+                onDeleteLine: onDeleteLine, onNudge: onNudge))
+        hosting.frame = container.bounds
         hosting.autoresizingMask = [.width, .height]
-        effect.addSubview(hosting)
+        container.addSubview(hosting)
 
-        // Hairline edge, like system HUDs.
-        effect.wantsLayer = true
-        contentView = effect
+        contentView = container
         setAccessibilityLabel("Wispr Assist controls")
     }
 
-    private let onGlobeRightClick: () -> Void
-
-    /// Right-click on the Globe button acts as Return. SwiftUI has no right-click gesture for a
-    /// panel that is never key, so it is handled here, before normal dispatch.
+    /// Mouse handling SwiftUI can't do for a panel that is never key: right-click on the Globe button
+    /// acts as Return, and dragging the move handle repositions the panel.
     override func sendEvent(_ event: NSEvent) {
         switch event.type {
         case .rightMouseDown:
             return
         case .rightMouseUp:
-            if Metrics.globeButtonXRange.contains(event.locationInWindow.x) { onGlobeRightClick() }
+            if Metrics.globeButtonRect.contains(event.locationInWindow) { onGlobeRightClick() }
             return
+        case .leftMouseDown where isOnHandle(event.locationInWindow):
+            dragStartMouse = NSEvent.mouseLocation
+            dragStartOrigin = frame.origin
+            handleState.isDragging = true
+            onHandleDrag(.began)
+        case .leftMouseDragged where dragStartMouse != nil:
+            guard let start = dragStartMouse else { return }
+            let mouse = NSEvent.mouseLocation
+            onHandleDrag(
+                .moved(
+                    origin: CGPoint(
+                        x: dragStartOrigin.x + mouse.x - start.x,
+                        y: dragStartOrigin.y + mouse.y - start.y)))
+        case .leftMouseUp where dragStartMouse != nil:
+            dragStartMouse = nil
+            handleState.isDragging = false
+            onHandleDrag(.ended)
         default:
             super.sendEvent(event)
         }
+    }
+
+    private func isOnHandle(_ point: CGPoint) -> Bool {
+        let c = Metrics.handleCenter
+        return hypot(point.x - c.x, point.y - c.y) <= Metrics.handleDiameter / 2
     }
 
     override var canBecomeKey: Bool { false }
