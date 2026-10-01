@@ -13,3 +13,6 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - Opt-in local diagnostic log.
 - Move handle (✥) on the panel's top-left corner, shown on hover: drag to nudge the panel up to 300 pt;
   the position lasts for the current field only. VoiceOver can nudge it with "Move up/down/left/right".
+
+### Fixed
+- Panel no longer stays stranded when the caret jumps far within the same field (e.g. select-all + delete in Obsidian); it re-places next to the caret unless you moved it by hand.

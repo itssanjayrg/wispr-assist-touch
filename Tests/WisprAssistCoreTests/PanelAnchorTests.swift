@@ -31,4 +31,17 @@ final class PanelAnchorTests: XCTestCase {
         XCTAssertTrue(moved.isValid(appKey: 42, fieldKey: 7, elementFrame: nil))
         XCTAssertFalse(moved.isValid(appKey: 43, fieldKey: 7, elementFrame: field))
     }
+
+    func testCaretJumpingFarMakesAnchorStray() {
+        let a = PanelAnchor(
+            appKey: 42, fieldKey: 7, elementFrame: field, frame: .zero, caret: CGPoint(x: 200, y: 600))
+        XCTAssertFalse(a.strayed(to: CGPoint(x: 210, y: 620)))
+        XCTAssertTrue(a.strayed(to: CGPoint(x: 20, y: 300)))
+    }
+    func testUserMovedPanelNeverStrays() {
+        let a = PanelAnchor(
+            appKey: 42, fieldKey: 7, elementFrame: field, frame: .zero, caret: CGPoint(x: 200, y: 600)
+        ).moved(to: .zero)
+        XCTAssertFalse(a.strayed(to: CGPoint(x: 20, y: 300)))
+    }
 }

@@ -37,10 +37,12 @@ final class PanelController {
             return
         }
         if let hiddenAt, Date().timeIntervalSince(hiddenAt) > Self.anchorGrace { anchor = nil }
+        let caretPoint = CGPoint(x: snapshot.caretRect.midX, y: snapshot.caretRect.midY)
         if let anchor,
             anchor.isValid(
                 appKey: snapshot.appKey, fieldKey: snapshot.fieldKey,
-                elementFrame: snapshot.elementFrame)
+                elementFrame: snapshot.elementFrame),
+            !anchor.strayed(to: caretPoint)
         {
             hiddenAt = nil
             present(at: anchor.frame)
@@ -53,7 +55,7 @@ final class PanelController {
         }
         anchor = PanelAnchor(
             appKey: snapshot.appKey, fieldKey: snapshot.fieldKey,
-            elementFrame: snapshot.elementFrame, frame: frame)
+            elementFrame: snapshot.elementFrame, frame: frame, caret: caretPoint)
         hiddenAt = nil
         present(at: frame)
     }
