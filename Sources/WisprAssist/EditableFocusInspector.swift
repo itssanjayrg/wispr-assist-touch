@@ -15,6 +15,8 @@ struct FocusSnapshot: Equatable {
     var fieldKey: Int = 0
     /// Terminals keep the panel where it first appeared instead of following the caret.
     var isTerminal = false
+    /// Note-taking apps: the panel follows the caret when it jumps far (see `PanelAnchor.strayed`).
+    var isNoteTaking = false
 }
 
 /// Reads the focused element through the Accessibility API. Not thread-affine: it is called
@@ -124,7 +126,8 @@ final class EditableFocusInspector {
         )
         return FocusSnapshot(
             caretRect: anchor, elementFrame: frame, isAtLineEnd: atLineEnd, lift: lift,
-            appKey: Int(pid), fieldKey: Int(bitPattern: CFHash(element)), isTerminal: isTerminal)
+            appKey: Int(pid), fieldKey: Int(bitPattern: CFHash(element)), isTerminal: isTerminal,
+            isNoteTaking: EditabilityRules.isNoteTaking(bundleID: bundleID))
     }
 
     // MARK: - Element lookup

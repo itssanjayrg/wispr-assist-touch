@@ -46,7 +46,7 @@ final class PanelController {
             : anchor?.isValid(
                 appKey: snapshot.appKey, fieldKey: snapshot.fieldKey,
                 elementFrame: snapshot.elementFrame) == true
-        if let anchor, sameSession, snapshot.isTerminal || !anchor.strayed(to: caretPoint) {
+        if let anchor, sameSession, !snapshot.isNoteTaking || !anchor.strayed(to: caretPoint) {
             hiddenAt = nil
             present(at: anchor.frame)
             return
