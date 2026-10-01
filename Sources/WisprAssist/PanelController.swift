@@ -42,7 +42,7 @@ final class PanelController {
             anchor.isValid(
                 appKey: snapshot.appKey, fieldKey: snapshot.fieldKey,
                 elementFrame: snapshot.elementFrame),
-            !anchor.strayed(to: caretPoint)
+            snapshot.isTerminal || !anchor.strayed(to: caretPoint)
         {
             hiddenAt = nil
             present(at: anchor.frame)
