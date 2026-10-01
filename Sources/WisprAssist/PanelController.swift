@@ -38,12 +38,15 @@ final class PanelController {
         }
         if let hiddenAt, Date().timeIntervalSince(hiddenAt) > Self.anchorGrace { anchor = nil }
         let caretPoint = CGPoint(x: snapshot.caretRect.midX, y: snapshot.caretRect.midY)
-        if let anchor,
-            anchor.isValid(
+        // Terminals scroll and reflow their element as output arrives, so the field identity and
+        // frame are unreliable there: within one terminal app the panel simply stays put.
+        let sameSession =
+            snapshot.isTerminal
+            ? anchor?.appKey == snapshot.appKey
+            : anchor?.isValid(
                 appKey: snapshot.appKey, fieldKey: snapshot.fieldKey,
-                elementFrame: snapshot.elementFrame),
-            snapshot.isTerminal || !anchor.strayed(to: caretPoint)
-        {
+                elementFrame: snapshot.elementFrame) == true
+        if let anchor, sameSession, snapshot.isTerminal || !anchor.strayed(to: caretPoint) {
             hiddenAt = nil
             present(at: anchor.frame)
             return
