@@ -8,10 +8,15 @@ final class PanelController {
         onGlobeDown: { KeyEventPoster.globeDown() },
         onGlobeUp: { KeyEventPoster.globeUp() },
         onGlobeRightClick: { KeyEventPoster.pressReturn() },
+        onEscape: { KeyEventPoster.pressEscape() },
+        onClose: { [weak self] in self?.onClose?() },
         onDeleteLine: { KeyEventPoster.pressDeleteLine() },
         onHandleDrag: { [weak self] drag in self?.handleDrag(drag) },
         onNudge: { [weak self] delta in self?.nudge(delta) }
     )
+
+    /// Called when the user presses the red close button; the app turns the control off.
+    var onClose: (() -> Void)?
 
     private var isShown = false
     /// True while the user is dragging the move handle: automatic placement and hiding are paused.
@@ -37,11 +42,16 @@ final class PanelController {
             return
         }
         if let hiddenAt, Date().timeIntervalSince(hiddenAt) > Self.anchorGrace { anchor = nil }
-        if let anchor,
-            anchor.isValid(
+        let caretPoint = CGPoint(x: snapshot.caretRect.midX, y: snapshot.caretRect.midY)
+        // Terminals scroll and reflow their element as output arrives, so the field identity and
+        // frame are unreliable there: within one terminal app the panel simply stays put.
+        let sameSession =
+            snapshot.isTerminal
+            ? anchor?.appKey == snapshot.appKey
+            : anchor?.isValid(
                 appKey: snapshot.appKey, fieldKey: snapshot.fieldKey,
-                elementFrame: snapshot.elementFrame)
-        {
+                elementFrame: snapshot.elementFrame) == true
+        if let anchor, sameSession, !snapshot.isNoteTaking || !anchor.strayed(to: caretPoint) {
             hiddenAt = nil
             present(at: anchor.frame)
             return
@@ -53,7 +63,7 @@ final class PanelController {
         }
         anchor = PanelAnchor(
             appKey: snapshot.appKey, fieldKey: snapshot.fieldKey,
-            elementFrame: snapshot.elementFrame, frame: frame)
+            elementFrame: snapshot.elementFrame, frame: frame, caret: caretPoint)
         hiddenAt = nil
         present(at: frame)
     }

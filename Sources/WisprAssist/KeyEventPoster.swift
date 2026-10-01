@@ -8,11 +8,15 @@ enum KeyEventPoster {
     private static let queue = DispatchQueue(label: "app.wisprassist.keys", qos: .userInteractive)
 
     private static let returnKeyCode: CGKeyCode = 36  // kVK_Return
+    private static let escapeKeyCode: CGKeyCode = 53  // kVK_Escape
     private static let deleteKeyCode: CGKeyCode = 51  // kVK_Delete (Backspace)
     private static let functionKeyCode: CGKeyCode = 63  // kVK_Function (Fn / Globe)
 
     /// Plain Return.
     static func pressReturn() { press(returnKeyCode, flags: []) }
+
+    /// Plain Escape.
+    static func pressEscape() { press(escapeKeyCode, flags: []) }
 
     /// ⌘Delete (⌘⌫): deletes from the caret to the start of the line in macOS text fields.
     static func pressDeleteLine() { press(deleteKeyCode, flags: .maskCommand) }

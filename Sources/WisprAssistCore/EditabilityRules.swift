@@ -17,6 +17,20 @@ public enum EditabilityRules {
         return terminalBundleIDs.contains(bundleID)
     }
 
+    /// Note-taking / long-form editors, where the caret travels through a big document. Only here
+    /// does the panel follow the caret when it jumps; everywhere else it stays where it first appeared.
+    public static let noteTakingBundleIDs: Set<String> = [
+        "md.obsidian", "com.apple.Notes", "net.shinyfrog.bear", "notion.id", "com.electron.logseq",
+        "com.microsoft.onenote.mac", "com.evernote.Evernote", "abnerworks.Typora",
+        "com.lukilabs.lukiapp", "com.agiletortoise.Drafts-OSX", "com.ulyssesapp.mac",
+        "com.apple.TextEdit"
+    ]
+
+    public static func isNoteTaking(bundleID: String?) -> Bool {
+        guard let bundleID else { return false }
+        return noteTakingBundleIDs.contains(bundleID)
+    }
+
     /// - Parameters:
     ///   - role: `AXRole` of the focused element.
     ///   - subrole: `AXSubrole` (used to reject password fields).

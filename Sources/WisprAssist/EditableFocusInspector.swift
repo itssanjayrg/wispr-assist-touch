@@ -13,11 +13,18 @@ struct FocusSnapshot: Equatable {
     /// Process and element identity of the focused field (see `PanelAnchor`).
     var appKey: Int = 0
     var fieldKey: Int = 0
+    /// Terminals keep the panel where it first appeared instead of following the caret.
+    var isTerminal = false
+    /// Note-taking apps: the panel follows the caret when it jumps far (see `PanelAnchor.strayed`).
+    var isNoteTaking = false
 }
 
 /// Reads the focused element through the Accessibility API. Not thread-affine: it is called
 /// from a background queue so a hung target app can never block the UI.
 final class EditableFocusInspector {
+    /// Fields taller than this (points) with no readable caret are anchored at their bottom line.
+    private static let tallFieldHeight: CGFloat = 120
+    private static let bottomLineHeight: CGFloat = 24
     private let ownPID = ProcessInfo.processInfo.processIdentifier
     private let systemWide = AXUIElementCreateSystemWide()
     private var lastCaret: (pid: pid_t, frame: CGRect?, rect: CGRect, atLineEnd: Bool, time: Date)?
@@ -109,19 +116,31 @@ final class EditableFocusInspector {
         } else if let f = frame {
             // No caret anywhere: anchor at the field's leading edge (where text starts) instead
             // of its centre, spanning the field's height so the panel clears the whole field.
-            anchor = CGRect(x: f.minX + 10 + Metrics.pillSize.width / 2, y: f.minY, width: 0, height: f.height)
-            source = "frame-leading"
+            let x = f.minX + 10 + Metrics.pillSize.width / 2
+            if f.height > Self.tallFieldHeight {
+                // A big surface with no readable caret (e.g. VS Code's integrated terminal): the
+                // prompt is usually at the bottom, and "above the whole field" would land on the
+                // tabs / toolbar. Anchor to the bottom line and sit just above it, inside the field.
+                anchor = CGRect(x: x, y: f.maxY - Self.bottomLineHeight, width: 0, height: Self.bottomLineHeight)
+                atLineEnd = false
+                source = "frame-bottom"
+            } else {
+                anchor = CGRect(x: x, y: f.minY, width: 0, height: f.height)
+                source = "frame-leading"
+            }
         } else {
             DebugLog.note("NO GEOMETRY \(describe)")
             return nil
         }
-        let lift = EditabilityRules.isTerminal(bundleID: bundleID) ? PanelPlacement.terminalLift : 0
+        let isTerminal = EditabilityRules.isTerminal(bundleID: bundleID)
+        let lift = isTerminal ? PanelPlacement.terminalLift : 0
         DebugLog.note(
             "SHOWN \(describe) caret=\(source) anchor=\(Self.fmt(anchor)) frame=\(frame.map(Self.fmt) ?? "nil") lift=\(lift)"
         )
         return FocusSnapshot(
             caretRect: anchor, elementFrame: frame, isAtLineEnd: atLineEnd, lift: lift,
-            appKey: Int(pid), fieldKey: Int(bitPattern: CFHash(element)))
+            appKey: Int(pid), fieldKey: Int(bitPattern: CFHash(element)), isTerminal: isTerminal,
+            isNoteTaking: EditabilityRules.isNoteTaking(bundleID: bundleID))
     }
 
     // MARK: - Element lookup

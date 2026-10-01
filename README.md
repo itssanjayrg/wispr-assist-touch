@@ -3,6 +3,7 @@
 A tiny floating control for macOS that appears next to the text cursor, so you can **hold a button to
 dictate** and tap another to **delete the line** without reaching for the keyboard.
 
+- **esc** — a button above the Globe that sends **Escape**. **Red ✕** above ⌫ hides Wispr Assist; bring it back from the menu-bar icon → *Show Floating Control*.
 - **Hold 🌐** — presses and holds the Globe / Fn key for as long as you hold the button. Start and stop
   dictation (Wispr Flow, macOS Dictation, or anything bound to Fn) with the mouse.
 - **Right-click 🌐** — sends **Return** (submit a message, run a command, accept a search).

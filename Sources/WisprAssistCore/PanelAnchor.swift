@@ -13,8 +13,17 @@ public struct PanelAnchor: Equatable {
     public var frame: CGRect
     /// The window origin the panel was automatically placed at; limits how far the user may move it.
     public let homeOrigin: CGPoint
+    /// Where the caret was when the panel was placed (same coordinate space as `strayed(to:)`'s input).
+    public var caret: CGPoint?
+    /// True once the user has dragged / nudged the panel; their position is then never overridden.
+    public var userMoved = false
+    /// How far (points) the caret may travel from its placement point before the panel follows it.
+    public static let followDistance: CGFloat = 100
 
-    public init(appKey: Int, fieldKey: Int, elementFrame: CGRect?, frame: CGRect) {
+    public init(
+        appKey: Int, fieldKey: Int, elementFrame: CGRect?, frame: CGRect, caret: CGPoint? = nil
+    ) {
+        self.caret = caret
         self.appKey = appKey
         self.fieldKey = fieldKey
         self.elementFrame = elementFrame
@@ -27,7 +36,16 @@ public struct PanelAnchor: Equatable {
     public func moved(to frame: CGRect) -> PanelAnchor {
         var copy = self
         copy.frame = frame
+        copy.userMoved = true
         return copy
+    }
+
+    /// Has the caret jumped far from where the panel was placed (select-all + delete, clicking
+    /// elsewhere in a large editor, ...)? Editors like Obsidian expose one element for the whole
+    /// document, so the field never changes and the panel would otherwise be stranded.
+    public func strayed(to newCaret: CGPoint) -> Bool {
+        guard !userMoved, let old = caret else { return false }
+        return hypot(newCaret.x - old.x, newCaret.y - old.y) > Self.followDistance
     }
 
     /// Still "the same field"? The element identity is the fast path; some apps hand out a new
