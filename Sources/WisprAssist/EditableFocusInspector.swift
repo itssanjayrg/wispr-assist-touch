@@ -22,6 +22,9 @@ struct FocusSnapshot: Equatable {
 /// Reads the focused element through the Accessibility API. Not thread-affine: it is called
 /// from a background queue so a hung target app can never block the UI.
 final class EditableFocusInspector {
+    /// Fields taller than this (points) with no readable caret are anchored at their bottom line.
+    private static let tallFieldHeight: CGFloat = 120
+    private static let bottomLineHeight: CGFloat = 24
     private let ownPID = ProcessInfo.processInfo.processIdentifier
     private let systemWide = AXUIElementCreateSystemWide()
     private var lastCaret: (pid: pid_t, frame: CGRect?, rect: CGRect, atLineEnd: Bool, time: Date)?
@@ -113,8 +116,18 @@ final class EditableFocusInspector {
         } else if let f = frame {
             // No caret anywhere: anchor at the field's leading edge (where text starts) instead
             // of its centre, spanning the field's height so the panel clears the whole field.
-            anchor = CGRect(x: f.minX + 10 + Metrics.pillSize.width / 2, y: f.minY, width: 0, height: f.height)
-            source = "frame-leading"
+            let x = f.minX + 10 + Metrics.pillSize.width / 2
+            if f.height > Self.tallFieldHeight {
+                // A big surface with no readable caret (e.g. VS Code's integrated terminal): the
+                // prompt is usually at the bottom, and "above the whole field" would land on the
+                // tabs / toolbar. Anchor to the bottom line and sit just above it, inside the field.
+                anchor = CGRect(x: x, y: f.maxY - Self.bottomLineHeight, width: 0, height: Self.bottomLineHeight)
+                atLineEnd = false
+                source = "frame-bottom"
+            } else {
+                anchor = CGRect(x: x, y: f.minY, width: 0, height: f.height)
+                source = "frame-leading"
+            }
         } else {
             DebugLog.note("NO GEOMETRY \(describe)")
             return nil
