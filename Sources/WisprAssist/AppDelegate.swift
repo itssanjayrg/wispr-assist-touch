@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         Settings.registerDefaults()
         LaunchAtLogin.configureOnLaunch()
         buildStatusItem()
+        panelController.onClose = { [weak self] in self?.toggleEnabled() }
 
         if !AccessibilityPermission.isTrusted { AccessibilityPermission.prompt() }
 

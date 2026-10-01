@@ -9,10 +9,14 @@ final class PanelController {
         onGlobeUp: { KeyEventPoster.globeUp() },
         onGlobeRightClick: { KeyEventPoster.pressReturn() },
         onEscape: { KeyEventPoster.pressEscape() },
+        onClose: { [weak self] in self?.onClose?() },
         onDeleteLine: { KeyEventPoster.pressDeleteLine() },
         onHandleDrag: { [weak self] drag in self?.handleDrag(drag) },
         onNudge: { [weak self] delta in self?.nudge(delta) }
     )
+
+    /// Called when the user presses the red close button; the app turns the control off.
+    var onClose: (() -> Void)?
 
     private var isShown = false
     /// True while the user is dragging the move handle: automatic placement and hiding are paused.

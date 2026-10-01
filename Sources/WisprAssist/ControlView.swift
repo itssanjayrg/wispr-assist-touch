@@ -55,6 +55,7 @@ struct ControlView: View {
     let onGlobeDown: () -> Void
     let onGlobeUp: () -> Void
     let onEscape: () -> Void
+    let onClose: () -> Void
     let onDeleteLine: () -> Void
     let onNudge: (CGSize) -> Void
 
@@ -65,9 +66,13 @@ struct ControlView: View {
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             VStack(spacing: Metrics.spacing) {
-                KeyButton(
-                    symbol: nil, title: "esc", label: "Escape", tooltip: "Escape (esc)",
-                    action: onEscape, width: Metrics.buttonSize.width * 2 + Metrics.spacing)
+                HStack(spacing: Metrics.spacing) {
+                    KeyButton(title: "esc", label: "Escape", tooltip: "Escape (esc)", action: onEscape)
+                    KeyButton(
+                        symbol: "xmark", label: "Close Wispr Assist",
+                        tooltip: "Hide Wispr Assist (bring it back from the menu bar icon)",
+                        action: onClose, tint: .red)
+                }
                 HStack(spacing: Metrics.spacing) {
                 HoldKeyButton(
                     symbol: "globe", label: "Globe key",
@@ -166,7 +171,7 @@ private struct KeyButton: View {
     let label: String
     let tooltip: String
     let action: () -> Void
-    var width: CGFloat = Metrics.buttonSize.width
+    var tint: Color?
 
     @State private var isHovering = false
 
@@ -180,9 +185,9 @@ private struct KeyButton: View {
                 }
             }
             .font(.system(size: 14, weight: .medium))
-            .frame(width: width, height: Metrics.buttonSize.height)
+            .frame(width: Metrics.buttonSize.width, height: Metrics.buttonSize.height)
         }
-        .buttonStyle(KeyButtonStyle(isHovering: isHovering))
+        .buttonStyle(KeyButtonStyle(isHovering: isHovering, tint: tint))
         .background(HoverTracker(isHovering: $isHovering))
         .help(tooltip)
         .accessibilityLabel(label)
@@ -241,12 +246,13 @@ private struct HoldKeyButton: View {
 
 private struct KeyButtonStyle: ButtonStyle {
     let isHovering: Bool
+    var tint: Color?
 
     func makeBody(configuration: Configuration) -> some View {
         let shape = RoundedRectangle(cornerRadius: Metrics.innerRadius, style: .continuous)
         configuration.label
-            .foregroundStyle(.primary)
-            .background(shape.fill(Color.primary.opacity(configuration.isPressed ? 0.18 : (isHovering ? 0.09 : 0))))
+            .foregroundStyle(tint ?? .primary)
+            .background(shape.fill((tint ?? .primary).opacity(configuration.isPressed ? 0.18 : (isHovering ? 0.09 : 0))))
             .contentShape(shape)
             .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
             .animation(.easeOut(duration: 0.12), value: isHovering)
