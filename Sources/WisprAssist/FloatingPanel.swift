@@ -19,7 +19,8 @@ final class FloatingPanel: NSPanel {
 
     init(
         onGlobeDown: @escaping () -> Void, onGlobeUp: @escaping () -> Void,
-        onGlobeRightClick: @escaping () -> Void, onDeleteLine: @escaping () -> Void,
+        onGlobeRightClick: @escaping () -> Void, onEscape: @escaping () -> Void,
+        onDeleteLine: @escaping () -> Void,
         onHandleDrag: @escaping (HandleDrag) -> Void, onNudge: @escaping (CGSize) -> Void
     ) {
         self.onGlobeRightClick = onGlobeRightClick
@@ -58,7 +59,7 @@ final class FloatingPanel: NSPanel {
         let hosting = FirstMouseHostingView(
             rootView: ControlView(
                 handleState: state, onGlobeDown: onGlobeDown, onGlobeUp: onGlobeUp,
-                onDeleteLine: onDeleteLine, onNudge: onNudge))
+                onEscape: onEscape, onDeleteLine: onDeleteLine, onNudge: onNudge))
         hosting.frame = container.bounds
         hosting.autoresizingMask = [.width, .height]
         container.addSubview(hosting)

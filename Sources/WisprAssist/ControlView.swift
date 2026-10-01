@@ -22,7 +22,7 @@ enum Metrics {
     static var pillSize: CGSize {
         CGSize(
             width: buttonSize.width * 2 + spacing + padding * 2,
-            height: buttonSize.height + padding * 2)
+            height: buttonSize.height * 2 + spacing + padding * 2)
     }
 
     /// The whole window: the pill plus the overhang on its left and top.
@@ -36,7 +36,7 @@ enum Metrics {
         CGPoint(x: pillRect.minX + handleInset, y: pillRect.maxY - handleInset)
     }
 
-    /// The Globe button (window coordinates).
+    /// The Globe button (window coordinates); the Escape row sits above it.
     static var globeButtonRect: CGRect {
         CGRect(origin: CGPoint(x: pillRect.minX + padding, y: padding), size: buttonSize)
     }
@@ -54,6 +54,7 @@ struct ControlView: View {
 
     let onGlobeDown: () -> Void
     let onGlobeUp: () -> Void
+    let onEscape: () -> Void
     let onDeleteLine: () -> Void
     let onNudge: (CGSize) -> Void
 
@@ -63,7 +64,11 @@ struct ControlView: View {
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            HStack(spacing: Metrics.spacing) {
+            VStack(spacing: Metrics.spacing) {
+                KeyButton(
+                    symbol: nil, title: "esc", label: "Escape", tooltip: "Escape (esc)",
+                    action: onEscape, width: Metrics.buttonSize.width * 2 + Metrics.spacing)
+                HStack(spacing: Metrics.spacing) {
                 HoldKeyButton(
                     symbol: "globe", label: "Globe key",
                     tooltip: "Hold to dictate (Globe / fn)  ·  Right-click: Return",
@@ -71,6 +76,7 @@ struct ControlView: View {
                 KeyButton(
                     symbol: "delete.left", label: "Delete line",
                     tooltip: "Delete line (⌘⌫)", action: onDeleteLine)
+                }
             }
             .padding(Metrics.padding)
             .frame(width: Metrics.pillSize.width, height: Metrics.pillSize.height)
@@ -155,19 +161,26 @@ private struct CursorArea: NSViewRepresentable {
 }
 
 private struct KeyButton: View {
-    let symbol: String
+    var symbol: String?
+    var title: String?
     let label: String
     let tooltip: String
     let action: () -> Void
+    var width: CGFloat = Metrics.buttonSize.width
 
     @State private var isHovering = false
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: 14, weight: .medium))
-                .symbolRenderingMode(.monochrome)
-                .frame(width: Metrics.buttonSize.width, height: Metrics.buttonSize.height)
+            Group {
+                if let symbol {
+                    Image(systemName: symbol).symbolRenderingMode(.monochrome)
+                } else if let title {
+                    Text(title)
+                }
+            }
+            .font(.system(size: 14, weight: .medium))
+            .frame(width: width, height: Metrics.buttonSize.height)
         }
         .buttonStyle(KeyButtonStyle(isHovering: isHovering))
         .background(HoverTracker(isHovering: $isHovering))

@@ -8,6 +8,7 @@ final class PanelController {
         onGlobeDown: { KeyEventPoster.globeDown() },
         onGlobeUp: { KeyEventPoster.globeUp() },
         onGlobeRightClick: { KeyEventPoster.pressReturn() },
+        onEscape: { KeyEventPoster.pressEscape() },
         onDeleteLine: { KeyEventPoster.pressDeleteLine() },
         onHandleDrag: { [weak self] drag in self?.handleDrag(drag) },
         onNudge: { [weak self] delta in self?.nudge(delta) }
